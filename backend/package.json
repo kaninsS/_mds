@@ -23,15 +23,21 @@
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.13.1",
+    "@medusajs/auth-emailpass": "^2.13.1",
     "@medusajs/cli": "2.13.1",
+    "@medusajs/file-local": "^2.13.1",
     "@medusajs/framework": "2.13.1",
-    "@medusajs/medusa": "2.13.1"
+    "@medusajs/medusa": "2.13.1",
+    "cors": "^2.8.6",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.13.1",
     "@swc/core": "^1.7.28",
     "@swc/jest": "^0.2.36",
+    "@types/cors": "^2.8.19",
     "@types/jest": "^29.5.13",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.12.11",
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.2.25",

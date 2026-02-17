@@ -1,0 +1,131 @@
+openapi: 3.0.0
+info:
+  title: Marketplace
+  version: 1.0.0
+servers:
+  - url: http://{{backend_url}}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+tags:
+  - name: Auth
+  - name: Products
+  - name: Admin
+  - name: Store
+paths:
+  /auth/vendor/emailpass:
+    post:
+      tags:
+        - Auth
+      summary: Authenticated JWT Token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: admin@medusa-test.com
+                password: supersecret
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /vendors:
+    post:
+      tags:
+        - Auth
+      summary: Register Vendor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Acme
+                admin:
+                  email: admin@medusa-test.com
+                  first_name: Admin
+                  last_name: Acme
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /auth/vendor/emailpass/register:
+    post:
+      tags:
+        - Auth
+      summary: Registration JWT Token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: admin@medusa-test.com
+                password: supersecret
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /vendors/products:
+    get:
+      tags:
+        - Products
+      summary: Get Products
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Products
+      summary: Create Product
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: T-Shirt
+                status: published
+                options:
+                  - title: Color
+                    values:
+                      - Blue
+                variants:
+                  - title: T-Shirt
+                    prices:
+                      - currency_code: eur
+                        amount: 10
+                    manage_inventory: false
+                    options:
+                      Color: Blue
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /vendors/orders:
+    get:
+      tags:
+        - default
+      summary: Get Orders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
