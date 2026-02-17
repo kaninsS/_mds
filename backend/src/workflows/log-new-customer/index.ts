@@ -15,7 +15,7 @@ const logCustomerStep = createStep(
 
         const logEntry = `[${new Date().toISOString()}] New Customer: ${customer.email} (ID: ${customer.id}) - Name: ${customer.first_name || 'N/A'} ${customer.last_name || 'N/A'}\n`
 
-        const logFilePath = path.join(process.cwd(), "customer-logs.txt")
+        const logFilePath = path.join(process.cwd(), "..", "_tmp", "customer-logs.txt")
 
         try {
             fs.appendFileSync(logFilePath, logEntry)

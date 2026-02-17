@@ -7,11 +7,15 @@ export default async function logCustomerSubscriber({
 }: SubscriberArgs<{
     id: string
 }>) {
-    await logNewCustomerWorkflow(container)
+    // Execute workflow in background (fire-and-forget)
+    logNewCustomerWorkflow(container)
         .run({
             input: {
                 customer_id: data.id,
             },
+        })
+        .catch(error => {
+            console.error("Error in logCustomerSubscriber:", error)
         })
 }
 
