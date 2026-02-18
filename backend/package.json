@@ -27,8 +27,11 @@
     "@medusajs/cli": "2.13.1",
     "@medusajs/file-local": "^2.13.1",
     "@medusajs/framework": "2.13.1",
+    "@medusajs/js-sdk": "^2.13.1",
     "@medusajs/medusa": "2.13.1",
+    "@types/mime-types": "^3.0.1",
     "cors": "^2.8.6",
+    "mime-types": "^3.0.2",
     "multer": "^2.0.2"
   },
   "devDependencies": {

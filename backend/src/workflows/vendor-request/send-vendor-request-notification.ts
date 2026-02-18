@@ -7,6 +7,8 @@ import {
 import { Modules } from "@medusajs/framework/utils"
 import { IUserModuleService } from "@medusajs/framework/types"
 
+const MARKETPLACE_MODULE = "marketplace"
+
 type SendNotificationStepInput = {
     title: string
     description?: string
@@ -14,6 +16,21 @@ type SendNotificationStepInput = {
     vendor_email: string
     image_url?: string
 }
+
+const createVendorRequestStep = createStep(
+    "create-vendor-request",
+    async (input: SendNotificationStepInput, { container }) => {
+        const marketplaceModuleService = container.resolve(MARKETPLACE_MODULE)
+
+        const vendorRequest = await marketplaceModuleService.createVendorRequests(input)
+
+        return new StepResponse(vendorRequest, vendorRequest.id)
+    },
+    async (id: string, { container }) => {
+        const marketplaceModuleService = container.resolve(MARKETPLACE_MODULE)
+        await marketplaceModuleService.deleteVendorRequests([id])
+    }
+)
 
 const getAdminEmailsStep = createStep(
     "get-admin-emails",
@@ -57,6 +74,7 @@ const sendNotificationStep = createStep(
 export const sendVendorRequestNotificationWorkflow = createWorkflow(
     "send-vendor-request-notification",
     (input: SendNotificationStepInput) => {
+        const vendorRequest = createVendorRequestStep(input)
         const emails = getAdminEmailsStep()
 
         sendNotificationStep({
@@ -64,6 +82,9 @@ export const sendVendorRequestNotificationWorkflow = createWorkflow(
             request: input
         })
 
-        return new WorkflowResponse({ success: true })
+        return new WorkflowResponse({
+            success: true,
+            vendorRequest
+        })
     }
 )
