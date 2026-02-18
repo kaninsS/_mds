@@ -151,6 +151,17 @@ const ProductRequestsPage = () => {
                                                         </div>
                                                     </div>
 
+                                                    {req.image_url && (
+                                                        <div className="flex flex-col gap-1">
+                                                            <Text size="small" className="text-ui-fg-subtle">Image</Text>
+                                                            <img
+                                                                src={req.image_url}
+                                                                alt={req.name}
+                                                                className="w-full h-auto rounded-md object-cover max-h-[200px]"
+                                                            />
+                                                        </div>
+                                                    )}
+
                                                     <div className="flex flex-col gap-2 pt-2">
                                                         <Label size="small" weight="plus">Status</Label>
                                                         <Select value={status} onValueChange={setStatus}>

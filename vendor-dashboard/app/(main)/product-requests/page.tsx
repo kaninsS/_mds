@@ -161,6 +161,7 @@ export default function ProductRequestsPage() {
             <Table>
                 <Table.Header>
                     <Table.Row>
+                        <Table.HeaderCell>Image</Table.HeaderCell>
                         <Table.HeaderCell>Product Name</Table.HeaderCell>
                         <Table.HeaderCell>Description</Table.HeaderCell>
                         <Table.HeaderCell>Status</Table.HeaderCell>
@@ -177,6 +178,19 @@ export default function ProductRequestsPage() {
                     ) : (
                         requests.map((req) => (
                             <Table.Row key={req.id}>
+                                <Table.Cell>
+                                    {req.image_url ? (
+                                        <img
+                                            src={req.image_url}
+                                            alt={req.name}
+                                            className="h-10 w-10 rounded-md object-cover"
+                                        />
+                                    ) : (
+                                        <div className="h-10 w-10 rounded-md bg-ui-bg-subtle flex items-center justify-center">
+                                            <span className="text-ui-fg-muted">-</span>
+                                        </div>
+                                    )}
+                                </Table.Cell>
                                 <Table.Cell className="font-medium">{req.name}</Table.Cell>
                                 <Table.Cell className="max-w-xs truncate text-ui-fg-subtle">
                                     {req.description}
