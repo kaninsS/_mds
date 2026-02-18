@@ -34,23 +34,24 @@ module.exports = defineConfig({
     {
       resolve: "@medusajs/medusa/auth",
       options: {
+        scopes: {
+          vendor: {
+            valid_providers: ["emailpass"],
+          },
+        },
         providers: [
           {
             resolve: "@medusajs/medusa/auth-emailpass",
             id: "emailpass",
-            options: {
-              scopes: {
-                vendor: {
-                  valid_providers: ["emailpass"],
-                },
-              },
-            },
           },
         ],
       },
     },
     {
       resolve: "./src/modules/marketplace",
+    },
+    {
+      resolve: "./src/modules/product-request",
     }
   ]
 })

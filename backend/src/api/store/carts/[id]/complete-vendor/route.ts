@@ -1,5 +1,5 @@
-import { 
-  AuthenticatedMedusaRequest, 
+import {
+  AuthenticatedMedusaRequest,
   MedusaResponse
 } from "@medusajs/framework";
 import createVendorOrdersWorkflow from "../../../../../workflows/marketplace/create-vendor-orders";
