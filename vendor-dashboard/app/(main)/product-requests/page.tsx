@@ -39,6 +39,10 @@ export default function ProductRequestsPage() {
     const [submitting, setSubmitting] = useState(false)
     const [form, setForm] = useState({ name: "", description: "", image_url: "" })
 
+    // New state for file upload
+    const [isUploadMode, setIsUploadMode] = useState(false)
+    const [uploadingFile, setUploadingFile] = useState(false)
+
     const fetchRequests = async () => {
         const token = localStorage.getItem("medusa_auth_token")
         if (!token) return
@@ -58,6 +62,49 @@ export default function ProductRequestsPage() {
     useEffect(() => {
         fetchRequests()
     }, [])
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const token = localStorage.getItem("medusa_auth_token")
+        if (!token) return
+
+        setUploadingFile(true)
+        const formData = new FormData()
+        formData.append("file", file)
+
+        try {
+            const response = await fetch("http://localhost:9000/vendors/me/product-requests/upload", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                console.error("Upload failed details:", errorData)
+                throw new Error(`Upload failed with status ${response.status}: ${JSON.stringify(errorData)}`)
+            }
+
+            const data = await response.json()
+
+            if (data.url) {
+                setForm(prev => ({ ...prev, image_url: data.url }))
+                toast.success("File uploaded successfully")
+            } else {
+                console.error("No URL returned", data)
+                toast.error("Upload succeeded but no URL returned")
+            }
+        } catch (error) {
+            console.error("Upload failed", error)
+            toast.error(`Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`)
+        } finally {
+            setUploadingFile(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -140,17 +187,87 @@ export default function ProductRequestsPage() {
                                 required
                             />
                         </div>
+
                         <div>
-                            <Label htmlFor="image_url" className="mb-1 block">Image URL (optional)</Label>
-                            <Input
-                                id="image_url"
-                                placeholder="https://example.com/image.jpg"
-                                value={form.image_url}
-                                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                            />
+                            <Label className="mb-2 block">Image Source</Label>
+                            <div className="flex gap-4 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="radio"
+                                        id="source-url"
+                                        name="image-source"
+                                        checked={!isUploadMode}
+                                        onChange={() => setIsUploadMode(false)}
+                                        className="accent-ui-fg-interactive"
+                                    />
+                                    <label htmlFor="source-url" className="text-ui-fg-base text-small cursor-pointer">Image URL</label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="radio"
+                                        id="source-upload"
+                                        name="image-source"
+                                        checked={isUploadMode}
+                                        onChange={() => setIsUploadMode(true)}
+                                        className="accent-ui-fg-interactive"
+                                    />
+                                    <label htmlFor="source-upload" className="text-ui-fg-base text-small cursor-pointer">Upload File</label>
+                                </div>
+                            </div>
+
+                            {isUploadMode ? (
+                                <div>
+                                    <Label htmlFor="file-upload" className="mb-1 block">Select File</Label>
+                                    <Input
+                                        id="file-upload"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/svg+xml,image/tiff,image/heic,image/x-adobe-dng"
+                                        onChange={handleFileUpload}
+                                        disabled={uploadingFile}
+                                    />
+                                    <Text className="text-ui-fg-subtle text-small mt-1">
+                                        Supported types: JPEG, PNG, GIF, WebP, AVIF, SVG, TIFF, HEIC, RAW
+                                    </Text>
+                                    {uploadingFile && <Text className="text-ui-fg-interactive mt-1">Uploading...</Text>}
+                                </div>
+                            ) : (
+                                <div>
+                                    <Label htmlFor="image_url" className="mb-1 block">Image URL</Label>
+                                    <Input
+                                        id="image_url"
+                                        placeholder="https://example.com/image.jpg"
+                                        value={form.image_url}
+                                        onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                                    />
+                                </div>
+                            )}
+
+                            {form.image_url && (
+                                <div className="mt-4">
+                                    <Label className="mb-2 block">Image Preview</Label>
+                                    <div className="relative h-40 w-40 rounded-lg overflow-hidden border border-ui-border-base bg-ui-bg-base">
+                                        <img
+                                            src={form.image_url}
+                                            alt="Preview"
+                                            className="h-full w-full object-cover"
+                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="transparent"
+                                        size="small"
+                                        className="text-ui-fg-error mt-1"
+                                        onClick={() => setForm({ ...form, image_url: "" })}
+                                        type="button"
+                                    >
+                                        Remove Image
+                                    </Button>
+                                </div>
+                            )}
                         </div>
+
                         <div className="flex justify-end">
-                            <Button type="submit" isLoading={submitting} variant="primary">
+                            <Button type="submit" isLoading={submitting || uploadingFile} variant="primary">
                                 Submit Request
                             </Button>
                         </div>

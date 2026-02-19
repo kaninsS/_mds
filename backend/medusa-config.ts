@@ -25,7 +25,7 @@ module.exports = defineConfig({
             id: "local",
             options: {
               upload_dir: "static",
-              backend_url: process.env.BACKEND_URL || "http://localhost:9000",
+              backend_url: (process.env.BACKEND_URL || "http://localhost:9000") + "/static",
             },
           },
         ],
@@ -52,6 +52,29 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/product-request",
-    }
+    },
+    {
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/console-notification",
+            id: "console-notification",
+            options: {
+              channels: ["email-console"],
+            },
+          },
+          {
+            resolve: "./src/modules/resend-notification",
+            id: "resend-notification",
+            options: {
+              channels: ["email"],
+              api_key: process.env.RESEND_API_KEY,
+              from_email: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+            },
+          },
+        ],
+      },
+    },
   ]
 })

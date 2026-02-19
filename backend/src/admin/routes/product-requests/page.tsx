@@ -157,7 +157,7 @@ const ProductRequestsPage = () => {
                                                             <img
                                                                 src={req.image_url}
                                                                 alt={req.name}
-                                                                className="w-full h-auto rounded-md object-cover max-h-[200px]"
+                                                                className="w-[400px] h-[400px] object-contain bg-ui-bg-subtle rounded-md border border-ui-border-base"
                                                             />
                                                         </div>
                                                     )}

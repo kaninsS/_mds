@@ -7,6 +7,7 @@ import { MARKETPLACE_MODULE } from "../../../../modules/marketplace"
 import { PRODUCT_REQUEST_MODULE } from "../../../../modules/product-request"
 import MarketplaceModuleService from "../../../../modules/marketplace/service"
 import ProductRequestModuleService from "../../../../modules/product-request/service"
+import { sendProductRequestNotificationWorkflow } from "../../../../workflows/product-request/send-notification"
 
 export const GET = async (
     req: AuthenticatedMedusaRequest,
@@ -117,7 +118,13 @@ export const POST = async (
             status: "pending"
         })
 
-        // No need for remoteLink anymore as we save vendor_id directly
+        // Trigger notification workflow
+        await sendProductRequestNotificationWorkflow(req.scope)
+            .run({
+                input: {
+                    productRequest,
+                },
+            })
 
         res.json({ product_request: productRequest })
     } catch (error) {

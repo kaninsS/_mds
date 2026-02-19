@@ -15,6 +15,8 @@
   "scripts": {
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "create-test-vendor": "sh ./scripts/create_test_vendor.sh",
+    "create-test-admin": "sh ./scripts/create_test_admin.sh",
     "start": "medusa start",
     "dev": "medusa develop",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
@@ -32,7 +34,8 @@
     "@types/mime-types": "^3.0.1",
     "cors": "^2.8.6",
     "mime-types": "^3.0.2",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "resend": "^6.9.2"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.13.1",
