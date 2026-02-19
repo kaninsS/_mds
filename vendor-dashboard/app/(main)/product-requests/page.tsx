@@ -216,7 +216,7 @@ export default function ProductRequestsPage() {
                             </div>
 
                             {isUploadMode ? (
-                                <div>
+                                <div key="upload-mode">
                                     <Label htmlFor="file-upload" className="mb-1 block">Select File</Label>
                                     <Input
                                         id="file-upload"
@@ -231,12 +231,12 @@ export default function ProductRequestsPage() {
                                     {uploadingFile && <Text className="text-ui-fg-interactive mt-1">Uploading...</Text>}
                                 </div>
                             ) : (
-                                <div>
+                                <div key="url-mode">
                                     <Label htmlFor="image_url" className="mb-1 block">Image URL</Label>
                                     <Input
                                         id="image_url"
                                         placeholder="https://example.com/image.jpg"
-                                        value={form.image_url}
+                                        value={form.image_url || ""}
                                         onChange={(e) => setForm({ ...form, image_url: e.target.value })}
                                     />
                                 </div>
@@ -318,7 +318,7 @@ export default function ProductRequestsPage() {
                                     </StatusBadge>
                                 </Table.Cell>
                                 <Table.Cell className="text-ui-fg-subtle">
-                                    {new Date(req.created_at).toLocaleDateString()}
+                                    {new Date(req.created_at).toISOString().split('T')[0]}
                                 </Table.Cell>
                             </Table.Row>
                         ))
