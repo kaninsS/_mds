@@ -56,8 +56,10 @@ export function Sidebar() {
                 <SidebarItem href="/" icon={BuildingStorefront} label="Dashboard" />
                 <SidebarItem href="/orders" icon={ShoppingBag} label="Orders" />
                 <SidebarItem href="/products" icon={Tag} label="Products" />
+                <SidebarItem href="/customers" icon={Users} label="Customers" />
                 <SidebarItem href="/product-requests" icon={InboxSolid} label="Product Requests" />
                 <SidebarItem href="/settings" icon={CogSixTooth} label="Settings" />
+
             </div>
 
             <div className="p-4 border-t border-ui-border-base">

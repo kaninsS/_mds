@@ -1,9 +1,9 @@
-import { 
+import {
   createWorkflow,
   transform,
   WorkflowResponse
 } from "@medusajs/framework/workflows-sdk"
-import { 
+import {
   setAuthAppMetadataStep,
   useQueryGraphStep,
 } from "@medusajs/medusa/core-flows"
@@ -58,7 +58,7 @@ const createVendorWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse({
-      vendor: vendorWithAdmin[0],
+      vendor: vendorWithAdmin[0] as any,
     })
   }
 )

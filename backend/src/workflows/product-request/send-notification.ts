@@ -27,11 +27,11 @@ const sendNotificationStep = createStep(
     async (input: { emails: string[], productRequest: any }, { container }) => {
         const notificationModuleService: INotificationModuleService = container.resolve(Modules.NOTIFICATION)
 
-        const emailsSent = []
+        const emailsSent: string[] = []
 
         // TODO: This could be optimized to send in batch if the provider supports it, or parallelize.
         // Mailsac is strict/rate-limited usually, so sequential might be safer or just loop.
-        for (const email of input.emails) {
+        for (const email of input.emails as string[]) {
             try {
                 await notificationModuleService.createNotifications({
                     to: email,

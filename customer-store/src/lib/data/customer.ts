@@ -61,6 +61,7 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
 
 export async function signup(_currentState: unknown, formData: FormData) {
   const password = formData.get("password") as string
+  const inviteToken = formData.get("invite_token") as string | undefined
   const customerForm = {
     email: formData.get("email") as string,
     first_name: formData.get("first_name") as string,
@@ -86,6 +87,26 @@ export async function signup(_currentState: unknown, formData: FormData) {
       headers
     )
 
+    if (inviteToken) {
+      // Vendor registration linking flow
+      try {
+        console.log("Hitting vendor-register with:", { customer_id: createdCustomer.id, invite_token: inviteToken })
+        const res = await sdk.client.fetch(`/store/vendor-register`, {
+          method: "POST",
+          body: {
+            customer_id: createdCustomer.id,
+            invite_token: inviteToken
+          },
+          headers
+        })
+        console.log("Vendor register link success:", res)
+      } catch (linkError: any) {
+        console.error("Failed to link customer to vendor:", linkError.message || linkError)
+        // If the mapping fails, we definitely want the user to know it failed
+        return "Failed to link to vendor: " + (linkError.message || linkError)
+      }
+    }
+
     const loginToken = await sdk.auth.login("customer", "emailpass", {
       email: customerForm.email,
       password,
@@ -97,11 +118,11 @@ export async function signup(_currentState: unknown, formData: FormData) {
     revalidateTag(customerCacheTag)
 
     await transferCart()
-
-    return createdCustomer
   } catch (error: any) {
     return error.toString()
   }
+
+  redirect("/")
 }
 
 export async function login(_currentState: unknown, formData: FormData) {

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { sdk } from "@/lib/client"
-import { Container, Heading, Table, StatusBadge, Text } from "@medusajs/ui"
+import { Container, Heading, Table, StatusBadge, Text, Button } from "@medusajs/ui"
+import Link from "next/link"
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<any[]>([])
@@ -10,17 +11,11 @@ export default function OrdersPage() {
 
     useEffect(() => {
         const fetchOrders = async () => {
-            const token = localStorage.getItem("medusa_auth_token")
-            if (!token) return
-
             try {
-                // @ts-ignore
-                const { orders } = await sdk.client.fetch("/vendors/me/orders", {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                const res = await sdk.client.fetch<{ orders: any[] }>("/vendors/me/orders", {
+                    method: "GET"
                 })
-                setOrders(orders)
+                setOrders(res.orders || [])
             } catch (e) {
                 console.error("Failed to fetch orders", e)
             } finally {
@@ -55,14 +50,15 @@ export default function OrdersPage() {
                         <Table.HeaderCell>Fulfillment</Table.HeaderCell>
                         <Table.HeaderCell>Total</Table.HeaderCell>
                         <Table.HeaderCell>Date</Table.HeaderCell>
+                        <Table.HeaderCell></Table.HeaderCell>
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
                     {orders.length === 0 ? (
                         <Table.Row>
-                            <Table.Cell colSpan={6} className="text-center text-ui-fg-subtle">
+                            <td colSpan={7} className="text-center text-ui-fg-subtle p-8 border-b border-ui-border-base">
                                 No orders found.
-                            </Table.Cell>
+                            </td>
                         </Table.Row>
                     ) : (
                         orders.map((order) => (
@@ -88,6 +84,11 @@ export default function OrdersPage() {
                                 </Table.Cell>
                                 <Table.Cell>
                                     {new Date(order.created_at).toLocaleDateString()}
+                                </Table.Cell>
+                                <Table.Cell className="text-right">
+                                    <Link href={`/orders/${order.id}`}>
+                                        <Button variant="secondary" size="small">Details</Button>
+                                    </Link>
                                 </Table.Cell>
                             </Table.Row>
                         ))
