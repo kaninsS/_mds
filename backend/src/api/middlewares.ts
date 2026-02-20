@@ -50,6 +50,12 @@ export default defineMiddlewares({
       ]
     },
     {
+      matcher: "/vendors/me/*",
+      middlewares: [
+        authenticate("vendor", ["session", "bearer"]),
+      ]
+    },
+    {
       matcher: "/vendors/*",
       middlewares: [
         authenticate("vendor", ["session", "bearer"]),
