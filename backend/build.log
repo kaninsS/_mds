@@ -1,0 +1,22 @@
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm.
+npm warn Unknown env config "public-hoist-pattern". This will stop working in the next major version of npm.
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm.
+
+> backend@0.0.1 build
+> medusa build
+
+[32minfo[39m:    redisUrl not found. A fake redis instance will be used.
+[32minfo[39m:    Generating types...
+[32minfo[39m:    No link to load from /Users/kns/m/_mds/backend/node_modules/@medusajs/draft-order/.medusa/server/src/links. skipped.
+[32minfo[39m:    Types generated successfully
+[32minfo[39m:    Starting build...
+[32minfo[39m:    Compiling backend source...
+[32minfo[39m:    Removing existing ".medusa/server" folder
+[32minfo[39m:    Compiling frontend source...
+[96msrc/workflows/promotion/god-promotion.ts[0m:[93m34[0m:[93m18[0m - [91merror[0m[90m TS2321: [0mExcessive stack depth comparing types '(value: Maybe<Promotion> | WorkflowData<Maybe<Promotion>>, index: number, array: (Maybe<Promotion> | WorkflowData<...>)[]) => unknown' and '(value: Maybe<Promotion>, index: number, array: Maybe<Promotion>[]) => unknown'.
+
+[7m34[0m                 !data.carts[0].promotions?.some((promo) => promo?.id === data.promotions[0].id) &&
+[7m  [0m [91m                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[33mwarn[39m:    Backend build completed with errors (4.49s)
+[32minfo[39m:    Frontend build completed successfully (15.13s)

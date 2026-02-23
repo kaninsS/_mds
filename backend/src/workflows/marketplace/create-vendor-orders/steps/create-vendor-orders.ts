@@ -1,15 +1,15 @@
-import { 
+import {
   createStep,
   StepResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { 
-  CartLineItemDTO, 
+import {
+  CartLineItemDTO,
   OrderDTO,
   LinkDefinition,
   InferTypeOf
 } from "@medusajs/framework/types"
 import { Modules, promiseAll } from "@medusajs/framework/utils"
-import { 
+import {
   cancelOrderWorkflow,
   createOrderWorkflow
 } from "@medusajs/medusa/core-flows"
@@ -27,10 +27,10 @@ type StepInput = {
 }
 
 function prepareOrderData(
-  items: CartLineItemDTO[], 
+  items: CartLineItemDTO[],
   parentOrder: OrderDTO
 ) {
-  return  {
+  return {
     items,
     metadata: {
       parent_order_id: parentOrder.id
@@ -73,7 +73,7 @@ function prepareOrderData(
 const createVendorOrdersStep = createStep(
   "create-vendor-orders",
   async (
-    { vendorsItems, parentOrder }: StepInput, 
+    { vendorsItems, parentOrder }: StepInput,
     { container, context }
   ) => {
     const linkDefs: LinkDefinition[] = []
@@ -101,9 +101,20 @@ const createVendorOrdersStep = createStep(
         ...parentOrder,
         vendor: vendors[0]
       })
-      
+
+      // Create VendorOrderItem for revenue tracking
+      const vendorId = vendors[0].id
+      const items = vendorsItems[vendorId] || []
+      const vendorItemsData = items.map(item => ({
+        vendor_id: vendorId,
+        order_id: parentOrder.id,
+        line_item_id: item.id,
+        subtotal: Number(item.unit_price) * Number(item.quantity)
+      }))
+      await marketplaceModuleService.createVendorOrderItems(vendorItemsData)
+
       return new StepResponse({
-        orders:  createdOrders,
+        orders: createdOrders,
         linkDefs
       }, {
         // to avoid canceling the order, as 
@@ -118,17 +129,17 @@ const createVendorOrdersStep = createStep(
           const items = vendorsItems[vendorId]
           const vendor = vendors.find(v => v.id === vendorId)!
 
-          const {result: childOrder} = await createOrderWorkflow(
+          const { result: childOrder } = await createOrderWorkflow(
             container
           )
-          .run({
-            input: prepareOrderData(items, parentOrder),
-            context,
-          }) as unknown as { result: VendorOrder }
+            .run({
+              input: prepareOrderData(items, parentOrder),
+              context,
+            }) as unknown as { result: VendorOrder }
 
           childOrder.vendor = vendor
           createdOrders.push(childOrder)
-          
+
           linkDefs.push({
             [MARKETPLACE_MODULE]: {
               vendor_id: vendor.id
@@ -137,6 +148,15 @@ const createVendorOrdersStep = createStep(
               order_id: childOrder.id
             }
           })
+
+          // Create VendorOrderItem for revenue tracking
+          const vendorItemsData = items.map(item => ({
+            vendor_id: vendor.id,
+            order_id: childOrder.id,
+            line_item_id: item.id,
+            subtotal: Number(item.unit_price) * Number(item.quantity)
+          }))
+          await marketplaceModuleService.createVendorOrderItems(vendorItemsData)
         })
       )
     } catch (e) {
@@ -147,15 +167,15 @@ const createVendorOrdersStep = createStep(
         }
       )
     }
-    
-    return new StepResponse({ 
-      orders: createdOrders, 
+
+    return new StepResponse({
+      orders: createdOrders,
       linkDefs
     }, {
       created_orders: createdOrders
     })
   },
-  async (data, { container, context }) => {  
+  async (data, { container, context }) => {
     if (!data) {
       return
     }

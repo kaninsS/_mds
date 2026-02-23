@@ -15,7 +15,23 @@ export const GET = async (
         return
     }
 
-    const { result: entries } = await getVendorLogsWorkflow(req.scope).run({})
+    const query = req.scope.resolve("query") as any
+    const { data: vendorAdmins } = await query.graph({
+        entity: "vendor_admin",
+        fields: ["vendor.id"],
+        filters: { id: actor_id },
+    })
+
+    const vendor_id = vendorAdmins[0]?.vendor?.id
+
+    if (!vendor_id) {
+        res.status(400).json({ message: "Vendor not found for admin" })
+        return
+    }
+
+    const { result: entries } = await getVendorLogsWorkflow(req.scope).run({
+        input: { vendor_id }
+    })
 
     res.json({ logs: entries })
 }

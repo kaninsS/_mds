@@ -10,9 +10,10 @@ import { signup } from "@lib/data/customer"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
+  inviteToken?: string
 }
 
-const Register = ({ setCurrentView }: Props) => {
+const Register = ({ setCurrentView, inviteToken }: Props) => {
   const [message, formAction] = useActionState(signup, null)
 
   return (
@@ -28,6 +29,7 @@ const Register = ({ setCurrentView }: Props) => {
         shopping experience.
       </p>
       <form className="w-full flex flex-col" action={formAction}>
+        {inviteToken && <input type="hidden" name="invite_token" value={inviteToken} />}
         <div className="flex flex-col w-full gap-y-2">
           <Input
             label="First name"
@@ -92,6 +94,7 @@ const Register = ({ setCurrentView }: Props) => {
       <span className="text-center text-ui-fg-base text-small-regular mt-6">
         Already a member?{" "}
         <button
+          type="button"
           onClick={() => setCurrentView(LOGIN_VIEW.SIGN_IN)}
           className="underline"
         >
