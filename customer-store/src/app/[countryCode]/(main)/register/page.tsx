@@ -7,12 +7,14 @@ export const metadata: Metadata = {
     description: "Register for a Medusa Store account.",
 }
 
-export default function Register({
+export default async function Register({
     searchParams,
 }: {
-    searchParams: { [key: string]: string | string[] | undefined }
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-    const inviteToken = typeof searchParams.invite === "string" ? searchParams.invite : undefined
+    const params = await searchParams
+    const inviteToken = typeof params.invite === "string" ? params.invite : undefined
 
     return <RegisterTemplate inviteToken={inviteToken} />
 }
+

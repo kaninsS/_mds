@@ -20,6 +20,7 @@ export default defineMiddlewares({
 
           try {
             const marketplaceModuleService: any = req.scope.resolve("marketplaceModuleService");
+            const query = req.scope.resolve("query") as any;
 
             // 1. Get customer's vendor
             const vendorCustomers = await marketplaceModuleService.listVendorCustomers({
@@ -29,7 +30,27 @@ export default defineMiddlewares({
             if (!vendorCustomers.length) return next();
             const vendor_id = vendorCustomers[0].vendor_id;
 
-            // 2. Get visibility rules for this vendor
+            // 2. PRIMARY FILTER: Resolve vendor's Sales Channel via link
+            try {
+              const { data: vendorSalesChannels } = await query.graph({
+                entity: "vendor",
+                fields: ["sales_channel.id"],
+                filters: { id: vendor_id },
+              });
+
+              const salesChannelId = vendorSalesChannels?.[0]?.sales_channel?.id;
+
+              if (salesChannelId) {
+                // Scope products to this vendor's Sales Channel
+                req.filterableFields = req.filterableFields || {};
+                (req.filterableFields as any).sales_channel_id = [salesChannelId];
+              }
+            } catch (e) {
+              // No sales channel link yet — fall through to visibility rules
+              console.log("[visibility-middleware] No Sales Channel link for vendor:", vendor_id);
+            }
+
+            // 3. SECONDARY FILTER: Per-customer visibility overrides
             const rules = await marketplaceModuleService.listVendorProductVisibilities(
               { vendor_id },
               { relations: ["visibility_rule_customers"] }
@@ -37,7 +58,6 @@ export default defineMiddlewares({
 
             if (!rules.length) return next();
 
-            // 3. Find hidden product IDs
             const hiddenProductIds = rules
               .filter((r: any) => {
                 if (r.visibility === "hidden" || r.rule_type === "none") return true;
@@ -50,7 +70,6 @@ export default defineMiddlewares({
               .map((r: any) => r.product_id);
 
             if (hiddenProductIds.length > 0) {
-              // Inject a negative filter to exclude these products
               req.filterableFields = req.filterableFields || {};
               req.filterableFields.id = { $nin: hiddenProductIds };
             }

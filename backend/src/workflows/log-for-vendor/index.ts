@@ -9,14 +9,25 @@ export type LogEntry = {
     raw: string
 }
 
+import { MARKETPLACE_MODULE } from "../../modules/marketplace"
+import MarketplaceModuleService from "../../modules/marketplace/service"
+
 const readVendorLogsStep = createStep(
     "read-vendor-logs-step",
-    async () => {
+    async (input: { vendor_id: string }, { container }) => {
         const logFilePath = path.join(process.cwd(), "..", "_tmp", "vendor-customer-logs.txt")
 
         let entries: LogEntry[] = []
 
         try {
+            // 1. Get the customers belonging to this vendor
+            const marketplaceModuleService: MarketplaceModuleService = container.resolve(MARKETPLACE_MODULE)
+            const vendorCustomers = await marketplaceModuleService.listVendorCustomers({
+                vendor_id: input.vendor_id
+            })
+            const validCustomerIds = new Set(vendorCustomers.map(vc => vc.customer_id))
+
+            // 2. Read and filter logs
             if (fs.existsSync(logFilePath)) {
                 const content = fs.readFileSync(logFilePath, "utf-8")
                 const lines = content.split("\n").filter(line => line.trim() !== "")
@@ -32,6 +43,13 @@ const readVendorLogsStep = createStep(
                         }
                     }
                     return { timestamp: "", message: line, raw: line }
+                }).filter(entry => {
+                    // Extract customer ID from the log message (e.g. id=cus_01KHW...)
+                    const idMatch = entry.raw.match(/id=(cus_[a-zA-Z0-9]+)/)
+                    if (idMatch && idMatch[1]) {
+                        return validCustomerIds.has(idMatch[1])
+                    }
+                    return false
                 }).reverse() // newest first
             }
         } catch (error) {
@@ -44,8 +62,8 @@ const readVendorLogsStep = createStep(
 
 export const getVendorLogsWorkflow = createWorkflow(
     "get-vendor-logs",
-    () => {
-        const { entries } = readVendorLogsStep()
+    (input: { vendor_id: string }) => {
+        const { entries } = readVendorLogsStep(input)
         return new WorkflowResponse(entries)
     }
 )

@@ -9,6 +9,7 @@ import {
 } from "@medusajs/medusa/core-flows"
 import createVendorAdminStep from "./steps/create-vendor-admin"
 import createVendorStep from "./steps/create-vendor"
+import createVendorSalesChannelStep from "./steps/create-vendor-sales-channel"
 
 export type CreateVendorWorkflowInput = {
   name: string
@@ -43,6 +44,17 @@ const createVendorWorkflow = createWorkflow(
 
     const vendorAdmin = createVendorAdminStep(vendorAdminData)
 
+    // Create a dedicated Sales Channel for the vendor
+    const salesChannelData = transform({
+      input,
+      vendor,
+    }, (data) => ({
+      vendor_id: data.vendor.id,
+      vendor_name: data.input.name,
+    }))
+
+    createVendorSalesChannelStep(salesChannelData)
+
     setAuthAppMetadataStep({
       authIdentityId: input.authIdentityId,
       actorType: "vendor",
@@ -64,3 +76,4 @@ const createVendorWorkflow = createWorkflow(
 )
 
 export default createVendorWorkflow
+

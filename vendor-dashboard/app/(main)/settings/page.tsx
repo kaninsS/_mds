@@ -68,6 +68,11 @@ function ProfileTab() {
     const [saving, setSaving] = useState(false)
     const [loading, setLoading] = useState(true)
 
+    // File upload states
+    const [isUploadMode, setIsUploadMode] = useState(false)
+    const [uploadingFile, setUploadingFile] = useState(false)
+    const [copied, setCopied] = useState(false)
+
     const load = useCallback(async () => {
         try {
             const token = getAuthToken()
@@ -99,8 +104,10 @@ function ProfileTab() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ name, handle, logo: logo || undefined }),
+                body: JSON.stringify({ name, logo: logo || undefined }),
             })
+            // Update the local vendor state instantly so preview updates
+            setVendor(prev => prev ? { ...prev, name, logo: logo || null } : null)
             toast.success("Profile saved successfully!")
             load()
         } catch (e: any) {
@@ -108,6 +115,54 @@ function ProfileTab() {
         } finally {
             setSaving(false)
         }
+    }
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const token = getAuthToken()
+        if (!token) return
+
+        setUploadingFile(true)
+        const formData = new FormData()
+        formData.append("file", file)
+
+        try {
+            const response = await fetch("http://localhost:9000/vendors/me/product-requests/upload", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(`Upload failed with status ${response.status}: ${JSON.stringify(errorData)}`)
+            }
+
+            const data = await response.json()
+
+            if (data.url) {
+                setLogo(data.url)
+                toast.success("Image uploaded successfully")
+            } else {
+                toast.error("Upload succeeded but no URL returned")
+            }
+        } catch (error) {
+            console.error("Upload failed", error)
+            toast.error(`Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`)
+        } finally {
+            setUploadingFile(false)
+        }
+    }
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(handle)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        toast.info("Handle copied to clipboard")
     }
 
     if (loading) {
@@ -122,10 +177,10 @@ function ProfileTab() {
     }
 
     return (
-        <div className="max-w-lg space-y-6">
-            {/* Avatar preview */}
-            <div className="flex items-center gap-4 p-4 rounded-xl border border-ui-border-base bg-ui-bg-subtle">
-                <div className="w-14 h-14 rounded-full bg-ui-bg-base border border-ui-border-base flex items-center justify-center overflow-hidden shadow-sm">
+        <div className="max-w-2xl space-y-8">
+            {/* Avatar block */}
+            <div className="flex items-center gap-5 p-5 rounded-2xl border border-ui-border-base bg-ui-bg-subtle shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-ui-bg-base border-2 border-ui-border-base flex items-center justify-center overflow-hidden shadow-sm">
                     {(logo || vendor?.logo) ? (
                         <img
                             src={logo || vendor?.logo || ""}
@@ -134,59 +189,164 @@ function ProfileTab() {
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                         />
                     ) : (
-                        <User className="w-7 h-7 text-ui-fg-muted" />
+                        <User className="w-8 h-8 text-ui-fg-muted" />
                     )}
                 </div>
                 <div>
-                    <Text className="font-semibold text-ui-fg-base">{name || vendor?.name || "Unnamed Vendor"}</Text>
-                    <Text className="text-ui-fg-subtle text-sm">@{handle || vendor?.handle || "handle"}</Text>
+                    <Heading level="h2" className="text-ui-fg-base">{name || vendor?.name || "Unnamed Vendor"}</Heading>
+                    <Text className="text-ui-fg-subtle text-sm mt-0.5">@{handle || vendor?.handle || "handle"}</Text>
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <div className="space-y-1.5">
-                    <Label htmlFor="vendor-name">Store Name</Label>
-                    <Input
-                        id="vendor-name"
-                        placeholder="My Awesome Store"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                    />
-                </div>
+            <div className="space-y-7">
+                {/* Basic Info */}
+                <div className="space-y-5">
+                    <Heading level="h3">Store Details</Heading>
 
-                <div className="space-y-1.5">
-                    <Label htmlFor="vendor-handle">Handle</Label>
-                    <div className="flex items-center">
-                        <span className="inline-flex items-center px-3 h-9 border border-r-0 border-ui-border-base rounded-l-md bg-ui-bg-subtle text-ui-fg-muted text-sm">@</span>
-                        <Input
-                            id="vendor-handle"
-                            placeholder="my-store"
-                            value={handle}
-                            onChange={(e) => setHandle(e.target.value)}
-                            className="rounded-l-none"
-                        />
+                    <div className="grid gap-5 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="vendor-name" className="text-ui-fg-base">Store Name</Label>
+                            <Input
+                                id="vendor-name"
+                                placeholder="My Awesome Store"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="vendor-handle" className="text-ui-fg-base">Handle</Label>
+                            <div className="flex flex-col gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={handleCopy}
+                                    className="flex items-center text-left relative group w-full h-8 overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-subtle hover:bg-ui-bg-base transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ui-border-interactive shadow-buttons-neutral"
+                                    title="Click to copy handle"
+                                >
+                                    <span className="flex items-center justify-center w-8 h-full border-r border-ui-border-base text-ui-fg-muted text-sm shrink-0">@</span>
+                                    <span className="px-3 text-ui-fg-muted font-mono text-sm truncate flex-1">{handle}</span>
+
+                                    {/* Floating Copied Indicator */}
+                                    <div
+                                        className={`absolute right-1 top-1/2 -translate-y-1/2 px-1.5 py-0.5 bg-ui-bg-base border border-ui-border-base rounded shadow-sm text-[11px] font-medium text-ui-fg-base transition-all duration-200 pointer-events-none flex items-center gap-1
+                                            ${copied ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-2 scale-95'}
+                                        `}
+                                    >
+                                        <CheckMini className="w-3 h-3 text-ui-fg-interactive" />
+                                        Copied
+                                    </div>
+                                </button>
+                                <Text className="text-xs text-ui-fg-muted">
+                                    Read-only. Click to copy your unique store handle.
+                                </Text>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
-                    <Label htmlFor="vendor-logo">Logo URL</Label>
-                    <Input
-                        id="vendor-logo"
-                        placeholder="https://example.com/logo.png"
-                        value={logo}
-                        onChange={(e) => setLogo(e.target.value)}
-                    />
+                {/* Logo Section */}
+                <div className="space-y-4 pt-6 border-t border-ui-border-base">
+                    <div>
+                        <Heading level="h3" className="mb-1">Store Logo</Heading>
+                        <Text className="text-ui-fg-subtle text-sm">
+                            Upload a logo or provide an image URL. This appears on your storefront.
+                        </Text>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-6 items-start">
+                        <div className="flex-1 w-full space-y-4">
+                            {/* Segmented Control */}
+                            <div className="flex p-1 bg-ui-bg-subtle border border-ui-border-base rounded-lg w-fit">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUploadMode(false)}
+                                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${!isUploadMode ? 'bg-ui-bg-base text-ui-fg-base shadow-borders-base' : 'text-ui-fg-subtle hover:text-ui-fg-base'}`}
+                                >
+                                    Image URL
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUploadMode(true)}
+                                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${isUploadMode ? 'bg-ui-bg-base text-ui-fg-base shadow-borders-base' : 'text-ui-fg-subtle hover:text-ui-fg-base'}`}
+                                >
+                                    Upload File
+                                </button>
+                            </div>
+
+                            {/* Input Area */}
+                            {isUploadMode ? (
+                                <div key="upload-mode" className="space-y-2">
+                                    <Label htmlFor="file-upload">Select File</Label>
+                                    <Input
+                                        id="file-upload"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/svg+xml"
+                                        onChange={handleFileUpload}
+                                        disabled={uploadingFile || saving}
+                                    />
+                                    {uploadingFile ? (
+                                        <Text className="text-ui-fg-interactive text-xs">Uploading image...</Text>
+                                    ) : (
+                                        <Text className="text-ui-fg-subtle text-xs">Recommended size: 256x256px. Max size: 2MB.</Text>
+                                    )}
+                                </div>
+                            ) : (
+                                <div key="url-mode" className="space-y-2">
+                                    <Label htmlFor="vendor-logo">Image URL</Label>
+                                    <Input
+                                        id="vendor-logo"
+                                        placeholder="https://example.com/logo.png"
+                                        value={logo}
+                                        onChange={(e) => setLogo(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {logo && (
+                                <Button
+                                    variant="transparent"
+                                    size="small"
+                                    className="text-ui-fg-error pl-0"
+                                    onClick={() => setLogo("")}
+                                    type="button"
+                                >
+                                    Remove Logo
+                                </Button>
+                            )}
+                        </div>
+
+                        {/* Live Preview Box */}
+                        <div className="w-full sm:w-48 flex-shrink-0 flex items-center justify-center p-6 rounded-xl border border-ui-border-base bg-ui-bg-subtle aspect-square sm:aspect-auto sm:min-h-[160px]">
+                            <div className="w-32 h-32 rounded-full bg-ui-bg-base border-2 border-ui-border-base flex items-center justify-center overflow-hidden shadow-sm">
+                                {logo ? (
+                                    <img
+                                        src={logo}
+                                        alt="Logo preview"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+                                    />
+                                ) : (
+                                    <User className="w-8 h-8 text-ui-fg-muted opacity-50" />
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
 
-            <div className="pt-2">
+            <div className="pt-6 mt-8 border-t border-ui-border-base flex items-center justify-between">
+                <Text className="text-sm text-ui-fg-subtle">
+                    Ensure you save any unsaved changes before leaving.
+                </Text>
                 <Button
                     onClick={handleSave}
-                    isLoading={saving}
-                    disabled={saving}
-                    size="base"
+                    isLoading={saving || uploadingFile}
+                    disabled={saving || uploadingFile}
+                    size="large"
+                    variant="primary"
                 >
-                    Save Profile
+                    Save Changes
                 </Button>
             </div>
         </div>
@@ -230,8 +390,8 @@ function AppearanceTab() {
                                 aria-pressed={isActive}
                                 aria-label={`${opt.label} theme`}
                                 className={`relative flex flex-col items-center justify-center gap-2.5 p-5 rounded-xl border-2 transition-all cursor-pointer ${isActive
-                                        ? "border-ui-border-interactive bg-ui-bg-base shadow-elevation-card-rest"
-                                        : "border-ui-border-base bg-ui-bg-subtle hover:border-ui-border-strong hover:bg-ui-bg-base"
+                                    ? "border-ui-border-interactive bg-ui-bg-base shadow-elevation-card-rest"
+                                    : "border-ui-border-base bg-ui-bg-subtle hover:border-ui-border-strong hover:bg-ui-bg-base"
                                     }`}
                             >
                                 {opt.value === "light" && <Sun className="w-7 h-7 text-yellow-500" />}

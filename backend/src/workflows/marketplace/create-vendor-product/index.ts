@@ -1,13 +1,13 @@
 import { CreateProductWorkflowInputDTO } from "@medusajs/framework/types"
-import { 
-  createWorkflow, 
-  transform, 
+import {
+  createWorkflow,
+  transform,
   WorkflowResponse
 } from "@medusajs/framework/workflows-sdk"
-import { 
-  createProductsWorkflow, 
-  CreateProductsWorkflowInput, 
-  createRemoteLinkStep, 
+import {
+  createProductsWorkflow,
+  CreateProductsWorkflowInput,
+  createRemoteLinkStep,
   useQueryGraphStep
 } from "@medusajs/medusa/core-flows"
 import { MARKETPLACE_MODULE } from "../../../modules/marketplace"
@@ -21,24 +21,45 @@ type WorkflowInput = {
 const createVendorProductWorkflow = createWorkflow(
   "create-vendor-product",
   (input: WorkflowInput) => {
-    // Retrieve default sales channel to make the product available in.
-    // Alternatively, you can link sales channels to vendors and allow vendors
-    // to manage sales channels
+    // Retrieve vendor admin to get vendor ID
+    const { data: vendorAdmins } = useQueryGraphStep({
+      entity: "vendor_admin",
+      fields: ["vendor.id", "vendor.name"],
+      filters: {
+        id: input.vendor_admin_id
+      }
+    })
+
+    // Try to resolve the vendor's dedicated Sales Channel via link
+    // Falls back to the store default if no vendor Sales Channel exists
+    const { data: vendorWithSC } = useQueryGraphStep({
+      entity: "vendor",
+      fields: ["id", "sales_channel.id"],
+      filters: {
+        id: vendorAdmins[0].vendor.id,
+      },
+    }).config({ name: "retrieve-vendor-sales-channel" })
+
     const { data: stores } = useQueryGraphStep({
       entity: "store",
       fields: ["default_sales_channel_id"],
-    })
+    }).config({ name: "retrieve-store-defaults" })
 
     const productData = transform({
       input,
+      vendorWithSC,
       stores
     }, (data) => {
+      // Use vendor's Sales Channel if linked, otherwise fall back to default
+      const salesChannelId = (data.vendorWithSC?.[0] as any)?.sales_channel?.id
+        || data.stores[0].default_sales_channel_id
+
       return {
         products: [{
           ...data.input.product,
           sales_channels: [
             {
-              id: data.stores[0].default_sales_channel_id
+              id: salesChannelId
             }
           ]
         }]
@@ -48,14 +69,6 @@ const createVendorProductWorkflow = createWorkflow(
     const createdProducts = createProductsWorkflow.runAsStep({
       input: productData as CreateProductsWorkflowInput
     })
-    
-    const { data: vendorAdmins } = useQueryGraphStep({
-      entity: "vendor_admin",
-      fields: ["vendor.id"],
-      filters: {
-        id: input.vendor_admin_id
-      }
-    }).config({ name: "retrieve-vendor-admins" })
 
     const linksToCreate = transform({
       input,
@@ -75,7 +88,7 @@ const createVendorProductWorkflow = createWorkflow(
     })
 
     createRemoteLinkStep(linksToCreate)
-    
+
     const { data: products } = useQueryGraphStep({
       entity: "product",
       fields: ["*", "variants.*"],
