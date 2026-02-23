@@ -101,10 +101,12 @@ function ProfileTab() {
             await sdk.client.fetch("/vendors/me", {
                 method: "PUT",
                 headers: {
-                    "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ name, logo: logo || undefined }),
+                body: {
+                    name,
+                    logo: logo || undefined
+                },
             })
             // Update the local vendor state instantly so preview updates
             setVendor(prev => prev ? { ...prev, name, logo: logo || null } : null)
@@ -183,6 +185,7 @@ function ProfileTab() {
                 <div className="w-16 h-16 rounded-full bg-ui-bg-base border-2 border-ui-border-base flex items-center justify-center overflow-hidden shadow-sm">
                     {(logo || vendor?.logo) ? (
                         <img
+                            key={logo || vendor?.logo || "avatar"}
                             src={logo || vendor?.logo || ""}
                             alt="vendor logo"
                             className="w-full h-full object-cover"
@@ -201,8 +204,6 @@ function ProfileTab() {
             <div className="space-y-7">
                 {/* Basic Info */}
                 <div className="space-y-5">
-                    <Heading level="h3">Store Details</Heading>
-
                     <div className="grid gap-5 sm:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="vendor-name" className="text-ui-fg-base">Store Name</Label>
@@ -248,29 +249,37 @@ function ProfileTab() {
                 <div className="space-y-4 pt-6 border-t border-ui-border-base">
                     <div>
                         <Heading level="h3" className="mb-1">Store Logo</Heading>
-                        <Text className="text-ui-fg-subtle text-sm">
-                            Upload a logo or provide an image URL. This appears on your storefront.
-                        </Text>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-6 items-start">
                         <div className="flex-1 w-full space-y-4">
-                            {/* Segmented Control */}
-                            <div className="flex p-1 bg-ui-bg-subtle border border-ui-border-base rounded-lg w-fit">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsUploadMode(false)}
-                                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${!isUploadMode ? 'bg-ui-bg-base text-ui-fg-base shadow-borders-base' : 'text-ui-fg-subtle hover:text-ui-fg-base'}`}
-                                >
-                                    Image URL
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsUploadMode(true)}
-                                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${isUploadMode ? 'bg-ui-bg-base text-ui-fg-base shadow-borders-base' : 'text-ui-fg-subtle hover:text-ui-fg-base'}`}
-                                >
-                                    Upload File
-                                </button>
+                            {/* Image Source Radio Buttons */}
+                            <div className="space-y-2">
+                                <Label className="block">Image Source</Label>
+                                <div className="flex gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            id="logo-url"
+                                            name="logo-source"
+                                            checked={!isUploadMode}
+                                            onChange={() => setIsUploadMode(false)}
+                                            className="accent-ui-fg-interactive"
+                                        />
+                                        <label htmlFor="logo-url" className="text-ui-fg-base text-small cursor-pointer">Image URL</label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            id="logo-upload"
+                                            name="logo-source"
+                                            checked={isUploadMode}
+                                            onChange={() => setIsUploadMode(true)}
+                                            className="accent-ui-fg-interactive"
+                                        />
+                                        <label htmlFor="logo-upload" className="text-ui-fg-base text-small cursor-pointer">Upload File</label>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Input Area */}
@@ -320,6 +329,7 @@ function ProfileTab() {
                             <div className="w-32 h-32 rounded-full bg-ui-bg-base border-2 border-ui-border-base flex items-center justify-center overflow-hidden shadow-sm">
                                 {logo ? (
                                     <img
+                                        key={logo}
                                         src={logo}
                                         alt="Logo preview"
                                         className="w-full h-full object-cover"
