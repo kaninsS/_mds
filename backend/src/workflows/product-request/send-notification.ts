@@ -45,7 +45,8 @@ const sendNotificationStep = createStep(
                     },
                     // We can specify provider here if we have multiple, or let Medusa pick default for 'email' channel
                 })
-                emailsSent.push(email)
+                // TODO: enable this when we have a real email provider
+                // emailsSent.push(email)
             } catch (error) {
                 console.error(`Failed to send notification to ${email}:`, error)
                 // Continue sending to others
