@@ -30,11 +30,11 @@ const createVendorProductWorkflow = createWorkflow(
       }
     })
 
-    // Try to resolve the vendor's dedicated Sales Channel via link
+    // Try to resolve the vendor's dedicated Sales Channel
     // Falls back to the store default if no vendor Sales Channel exists
     const { data: vendorWithSC } = useQueryGraphStep({
       entity: "vendor",
-      fields: ["id", "sales_channel.id"],
+      fields: ["id", "sales_channel_id"],
       filters: {
         id: vendorAdmins[0].vendor.id,
       },
@@ -50,8 +50,8 @@ const createVendorProductWorkflow = createWorkflow(
       vendorWithSC,
       stores
     }, (data) => {
-      // Use vendor's Sales Channel if linked, otherwise fall back to default
-      const salesChannelId = (data.vendorWithSC?.[0] as any)?.sales_channel?.id
+      // Use vendor's Sales Channel, otherwise fall back to default
+      const salesChannelId = data.vendorWithSC?.[0]?.sales_channel_id
         || data.stores[0].default_sales_channel_id
 
       return {

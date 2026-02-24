@@ -5,6 +5,8 @@ import {
 import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import { MARKETPLACE_MODULE } from "../../../../modules/marketplace"
 import MarketplaceModuleService from "../../../../modules/marketplace/service"
+import { HttpTypes } from "@medusajs/framework/types"
+import createVendorProductWorkflow from "../../../../workflows/marketplace/create-vendor-product"
 
 export const GET = async (
     req: AuthenticatedMedusaRequest,
@@ -84,4 +86,26 @@ export const GET = async (
         console.error("Error fetching products:", error)
         res.status(500).json({ message: "Internal Server Error", error: error.message })
     }
+}
+
+export const POST = async (
+    req: AuthenticatedMedusaRequest<HttpTypes.AdminCreateProduct>,
+    res: MedusaResponse
+) => {
+    const actor_id = req.auth_context?.actor_id
+    if (!actor_id) {
+        return res.status(401).json({ message: "Unauthorized" })
+    }
+
+    const { result } = await createVendorProductWorkflow(req.scope)
+        .run({
+            input: {
+                vendor_admin_id: actor_id,
+                product: req.validatedBody
+            }
+        })
+
+    res.json({
+        product: result.product
+    })
 }

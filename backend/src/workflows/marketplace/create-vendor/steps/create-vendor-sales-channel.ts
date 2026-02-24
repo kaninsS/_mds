@@ -7,6 +7,7 @@ import {
 } from "@medusajs/medusa/core-flows"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MARKETPLACE_MODULE } from "../../../../modules/marketplace"
+import MarketplaceModuleService from "../../../../modules/marketplace/service"
 
 type CreateVendorSalesChannelStepInput = {
     vendor_id: string
@@ -44,6 +45,13 @@ const createVendorSalesChannelStep = createStep(
             [Modules.SALES_CHANNEL]: {
                 sales_channel_id: salesChannel.id,
             },
+        })
+
+        // 3. Save the sales_channel_id directly onto the custom Vendor model
+        const marketplaceModuleService: MarketplaceModuleService = container.resolve(MARKETPLACE_MODULE)
+        await marketplaceModuleService.updateVendors({
+            id: input.vendor_id,
+            sales_channel_id: salesChannel.id,
         })
 
         return new StepResponse(
