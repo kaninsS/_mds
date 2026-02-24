@@ -11,7 +11,8 @@ import {
     ArrowRightOnRectangle,
     InboxSolid
 } from "@medusajs/icons"
-import { Text, clx, Avatar, DropdownMenu } from "@medusajs/ui"
+import { Text, clx } from "@medusajs/ui"
+import { useEffect, useState } from "react"
 import { sdk } from "@/lib/client"
 import { useRouter } from "next/navigation"
 
@@ -37,6 +38,33 @@ const SidebarItem = ({ href, icon: Icon, label }: any) => {
 
 export function Sidebar() {
     const router = useRouter()
+    const [storeName, setStoreName] = useState("Vendor Store")
+    const [logo, setLogo] = useState<string | null>(null)
+
+    useEffect(() => {
+        const fetchVendor = async () => {
+            try {
+                const token = typeof window !== "undefined" ? localStorage.getItem("medusa_auth_token") : null
+                if (!token) return
+
+                // @ts-ignore
+                const { vendor } = await sdk.client.fetch("/vendors/me", {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+                if (vendor?.name) {
+                    setStoreName(vendor.name)
+                }
+                if (vendor?.logo) {
+                    setLogo(vendor.logo)
+                }
+            } catch (e) {
+                console.error("Failed to fetch vendor for sidebar", e)
+            }
+        }
+        fetchVendor()
+    }, [])
 
     const handleLogout = async () => {
         await sdk.auth.logout()
@@ -45,11 +73,15 @@ export function Sidebar() {
 
     return (
         <div className="w-64 h-screen border-r border-ui-border-base bg-ui-bg-subtle flex flex-col">
-            <div className="p-4 border-b border-ui-border-base flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-ui-bg-base flex items-center justify-center border border-ui-border-base shadow-sm">
-                    <BuildingStorefront className="text-ui-fg-base" />
+            <div className="p-4 border-b border-ui-border-base flex items-center gap-3">
+                <div className="w-8 h-8 rounded bg-ui-bg-base flex items-center justify-center border border-ui-border-base shadow-sm overflow-hidden shrink-0">
+                    {logo ? (
+                        <img src={logo} alt="Store logo" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }} />
+                    ) : (
+                        <BuildingStorefront className="text-ui-fg-base" />
+                    )}
                 </div>
-                <Text className="font-semibold text-sm">Vendor Store</Text>
+                <Text className="font-semibold text-sm truncate" title={storeName}>{storeName}</Text>
             </div>
 
             <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">

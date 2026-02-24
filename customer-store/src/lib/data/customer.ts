@@ -130,13 +130,28 @@ export async function login(_currentState: unknown, formData: FormData) {
   const password = formData.get("password") as string
 
   try {
-    await sdk.auth
-      .login("customer", "emailpass", { email, password })
-      .then(async (token) => {
-        await setAuthToken(token as string)
-        const customerCacheTag = await getCacheTag("customers")
-        revalidateTag(customerCacheTag)
+    const tokenResponse = await sdk.auth.login("customer", "emailpass", { email, password })
+    const token = tokenResponse as string
+
+    // Check if the customer is blocked by any vendor
+    try {
+      const statusResponse = await sdk.client.fetch<{ status: string }>("/store/customers/me/status", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
       })
+
+      if (statusResponse.status === "blocked") {
+        throw new Error("Your account has been blocked.")
+      }
+    } catch (e: any) {
+      if (e.message?.includes("Your account has been blocked")) throw e;
+      // If the endpoint fails for another reason, we can log it but let them in
+      console.error("Failed to check customer block status:", e)
+    }
+
+    await setAuthToken(token)
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
   } catch (error: any) {
     return error.toString()
   }

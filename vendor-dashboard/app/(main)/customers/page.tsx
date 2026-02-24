@@ -95,6 +95,16 @@ export default function CustomersPage() {
         }
     }
 
+    const unblockCustomer = async (vcId: string) => {
+        try {
+            await sdk.client.fetch(`/vendors/me/customers/${vcId}`, { method: "POST" })
+            toast.success("Customer is now active")
+            fetchCustomers()
+        } catch (e: any) {
+            toast.error("Failed to activate customer", { description: e.message })
+        }
+    }
+
     useEffect(() => { fetchCustomers() }, [])
 
     const filtered = customers.filter((vc) => {
@@ -209,7 +219,7 @@ export default function CustomersPage() {
                                         </td>
                                         <td className="px-4 py-3 text-ui-fg-muted">{joined}</td>
                                         <td className="px-4 py-3 text-right">
-                                            {vc.status !== "blocked" && (
+                                            {vc.status !== "blocked" ? (
                                                 <Button
                                                     variant="danger"
                                                     size="small"
@@ -217,6 +227,15 @@ export default function CustomersPage() {
                                                 >
                                                     <Trash />
                                                     Block
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    variant="secondary"
+                                                    size="small"
+                                                    onClick={() => unblockCustomer(vc.id)}
+                                                >
+                                                    <Check />
+                                                    Active
                                                 </Button>
                                             )}
                                         </td>
