@@ -15,7 +15,7 @@ export default function ProductsPage() {
     const [newProductCurrency, setNewProductCurrency] = useState("thb")
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-    const [options, setOptions] = useState<{ title: string, values: string }[]>([])
+    const [options, setOptions] = useState<{ title: string, values: string[] }[]>([])
     const [isCreating, setIsCreating] = useState(false)
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,12 +80,12 @@ export default function ProductsPage() {
                 }
             }
 
-            // Pre-process options properly parsing comma separated values
+            // Pre-process options
             const formattedOptions = options
-                .filter(o => o.title.trim() && o.values.trim())
+                .filter(o => o.title.trim() && o.values.length > 0)
                 .map(o => ({
                     title: o.title.trim(),
-                    values: o.values.split(",").map(v => v.trim()).filter(Boolean)
+                    values: o.values.map(v => v.trim()).filter(Boolean)
                 }))
 
             // 2. Transmit fully-mapped main product payload
@@ -276,24 +276,61 @@ export default function ProductsPage() {
                             <div className="space-y-4 pt-4 border-t border-ui-border-base mt-2">
                                 <div className="flex items-center justify-between">
                                     <Label className="text-ui-fg-base font-medium">Product Options (Optional)</Label>
-                                    <Button variant="secondary" size="small" type="button" onClick={() => setOptions([...options, { title: "", values: "" }])}>
+                                    <Button variant="secondary" size="small" type="button" onClick={() => setOptions([...options, { title: "", values: [] }])}>
                                         <Plus /> Add Option
                                     </Button>
                                 </div>
                                 {options.map((opt, idx) => (
-                                    <div key={idx} className="flex items-start gap-4 p-4 border border-ui-border-base rounded-md relative shadow-sm">
+                                    <div key={idx} className="flex flex-col gap-4 p-4 border border-ui-border-base rounded-md relative shadow-sm bg-ui-bg-field">
                                         <button type="button" className="absolute top-2 right-2 text-ui-fg-muted hover:text-ui-fg-base p-1" onClick={() => setOptions(options.filter((_, i) => i !== idx))}>&times;</button>
-                                        <div className="space-y-2 flex-1">
+
+                                        <div className="space-y-2 w-full pr-6">
                                             <Label className="text-xs">Option Name</Label>
                                             <Input placeholder="e.g. Size" value={opt.title} onChange={e => {
                                                 const newOpts = [...options]; newOpts[idx].title = e.target.value; setOptions(newOpts);
                                             }} />
                                         </div>
-                                        <div className="space-y-2 flex-[2]">
-                                            <Label className="text-xs">Values (comma separated)</Label>
-                                            <Input placeholder="e.g. Small, Medium, Large" value={opt.values} onChange={e => {
-                                                const newOpts = [...options]; newOpts[idx].values = e.target.value; setOptions(newOpts);
-                                            }} />
+
+                                        <div className="space-y-2 w-full">
+                                            <Label className="text-xs">Values</Label>
+
+                                            {opt.values.length > 0 && (
+                                                <div className="flex flex-wrap gap-2 mb-2">
+                                                    {opt.values.map((val, vIdx) => (
+                                                        <div key={vIdx} className="flex items-center gap-1 bg-ui-bg-base border border-ui-border-base px-2 py-1 rounded-md text-sm shadow-sm animate-in fade-in zoom-in duration-200">
+                                                            <span>{val}</span>
+                                                            <button
+                                                                type="button"
+                                                                className="text-ui-fg-muted hover:text-ui-fg-error ml-1 font-bold"
+                                                                onClick={() => {
+                                                                    const newOpts = [...options];
+                                                                    newOpts[idx].values = newOpts[idx].values.filter((_, i) => i !== vIdx);
+                                                                    setOptions(newOpts);
+                                                                }}
+                                                            >
+                                                                &times;
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <Input
+                                                placeholder="Type a value and press Enter"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const val = e.currentTarget.value.trim();
+                                                        if (val && !opt.values.includes(val)) {
+                                                            const newOpts = [...options];
+                                                            newOpts[idx].values.push(val);
+                                                            setOptions(newOpts);
+                                                            e.currentTarget.value = '';
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            <Text className="text-ui-fg-muted text-xs mt-1">Press <kbd className="border border-ui-border-base rounded px-1 text-[10px] bg-ui-bg-subtle">Enter</kbd> to add multiple values.</Text>
                                         </div>
                                     </div>
                                 ))}
