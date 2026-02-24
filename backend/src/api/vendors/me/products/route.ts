@@ -36,44 +36,56 @@ export const GET = async (
 
     const vendorId = vendorAdmin.vendor.id
 
-    // 2. Fetch products for this vendor using Remote Query
-    const query = {
-        entryPoint: "vendor",
-        fields: ["id"],
-        filters: { id: vendorId },
-        products: {
-            fields: [
-                "id",
-                "title",
-                "handle",
-                "thumbnail",
-                "status",
-                "created_at",
-                "updated_at",
-                "variants.id",
-                "variants.title",
-                "variants.prices.amount",
-                "variants.prices.currency_code"
-            ],
-        }
+    // 2. Fetch products for this vendor using the native query graph mapped by sales channel
+    const salesChannelId = vendorAdmin.vendor.sales_channel_id
+
+    if (!salesChannelId) {
+        // Vendor doesn't have a specific sales channel mapped yet
+        return res.json({
+            products: [],
+            count: 0,
+            offset: 0,
+            limit: 0
+        })
     }
 
-    console.log("Querying products for vendor:", vendorId)
+    const query = {
+        entryPoint: "product",
+        fields: [
+            "id",
+            "title",
+            "handle",
+            "thumbnail",
+            "status",
+            "created_at",
+            "updated_at",
+            "sales_channels.id",
+            "variants.id",
+            "variants.title",
+            "variants.prices.amount",
+            "variants.prices.currency_code"
+        ]
+    }
 
     try {
         const result = await remoteQuery(query)
-        console.log("Raw remoteQuery result:", JSON.stringify(result, null, 2))
 
         // Handle different return types safely
-        let vendor;
+        let products: any[] = [];
         if (Array.isArray(result)) {
-            vendor = result[0];
+            products = result;
         } else if (result && typeof result === 'object') {
             // @ts-ignore
-            vendor = result.data ? result.data[0] : result;
+            products = result.data || [];
         }
 
-        const products = vendor?.products || []
+        const rawProductsCount = products.length
+        const rawProduct0 = products[0] || null
+
+        // 3. Strictly filter in-memory to ensure only products actively assigned to this specific Sales Channel are returned
+        products = products.filter((p: any) =>
+            p.sales_channels?.some((sc: any) => sc.id === salesChannelId)
+        )
         const count = products.length
 
         res.json({
@@ -97,11 +109,33 @@ export const POST = async (
         return res.status(401).json({ message: "Unauthorized" })
     }
 
+    const body = req.body as any
+
+    // Medusa v2 requires at least one product option and variant mapping.
+    // We seamlessly convert a simple frontend 1-price input into a strict Variant mapping array.
+    const productPayload = {
+        ...body,
+        options: [{ title: "Default Option", values: ["Default"] }],
+        variants: [
+            {
+                title: "Default",
+                manage_inventory: false,
+                options: { "Default Option": "Default" },
+                prices: [
+                    {
+                        amount: body.price ? Number(body.price) : 0,
+                        currency_code: body.currency_code?.toLowerCase() || "thb"
+                    }
+                ]
+            }
+        ]
+    }
+
     const { result } = await createVendorProductWorkflow(req.scope)
         .run({
             input: {
                 vendor_admin_id: actor_id,
-                product: req.validatedBody
+                product: productPayload
             }
         })
 

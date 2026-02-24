@@ -7,6 +7,9 @@ import {
 import { z } from "@medusajs/framework/zod"
 import { AdminCreateProduct } from "@medusajs/medusa/api/admin/products/validators"
 import { PostVendorCreateSchema } from "./vendors/route"
+import multer from "multer"
+
+const upload = multer({ storage: multer.memoryStorage() })
 
 export default defineMiddlewares({
   routes: [
@@ -129,6 +132,13 @@ export default defineMiddlewares({
       matcher: "/vendors/*",
       middlewares: [
         authenticate("vendor", ["session", "bearer"]),
+      ]
+    },
+    {
+      matcher: "/vendors/me/upload",
+      method: ["POST"],
+      middlewares: [
+        upload.array("files"),
       ]
     },
     {

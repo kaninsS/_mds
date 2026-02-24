@@ -10,7 +10,20 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true)
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [newProductTitle, setNewProductTitle] = useState("")
+    const [newProductDescription, setNewProductDescription] = useState("")
+    const [newProductPrice, setNewProductPrice] = useState("")
+    const [newProductCurrency, setNewProductCurrency] = useState("thb")
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [isCreating, setIsCreating] = useState(false)
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            setSelectedFile(file)
+            setPreviewUrl(URL.createObjectURL(file))
+        }
+    }
 
     const fetchProducts = async () => {
         const token = localStorage.getItem("medusa_auth_token")
@@ -41,18 +54,57 @@ export default function ProductsPage() {
         setIsCreating(true)
         try {
             const token = localStorage.getItem("medusa_auth_token")
+            if (!token) throw new Error("Not logged in")
+
+            let thumbnailUrl = undefined
+
+            // 1. Upload image securely first if one is explicitly attached
+            if (selectedFile) {
+                const formData = new FormData()
+                formData.append("files", selectedFile)
+
+                const uploadRes = await fetch("http://localhost:9000/vendors/me/upload", {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: formData
+                })
+
+                if (!uploadRes.ok) throw new Error("Image upload failed")
+                const uploadData = await uploadRes.json()
+
+                if (uploadData.files && uploadData.files.length > 0) {
+                    thumbnailUrl = uploadData.files[0].url
+                }
+            }
+
+            // 2. Transmit fully-mapped main product payload
             // @ts-ignore
             await sdk.client.fetch("/vendors/me/products", {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`
                 },
-                body: { title: newProductTitle }
+                body: {
+                    title: newProductTitle,
+                    description: newProductDescription || undefined,
+                    price: newProductPrice ? Number(newProductPrice) : undefined,
+                    currency_code: newProductCurrency,
+                    thumbnail: thumbnailUrl
+                }
             })
 
             toast.success("Product created successfully!")
+
+            // Clean up UI state
             setIsCreateModalOpen(false)
             setNewProductTitle("")
+            setNewProductDescription("")
+            setNewProductPrice("")
+            setSelectedFile(null)
+            setPreviewUrl(null)
+
             fetchProducts()
         } catch (e: any) {
             toast.error("Failed to create product", { description: e.message })
@@ -83,8 +135,10 @@ export default function ProductsPage() {
             <Table>
                 <Table.Header>
                     <Table.Row>
+                        <Table.HeaderCell className="w-16">Image</Table.HeaderCell>
                         <Table.HeaderCell>Name</Table.HeaderCell>
                         <Table.HeaderCell>Status</Table.HeaderCell>
+                        <Table.HeaderCell>Price</Table.HeaderCell>
                         <Table.HeaderCell>Inventory</Table.HeaderCell>
                         <Table.HeaderCell>Created</Table.HeaderCell>
                     </Table.Row>
@@ -99,11 +153,28 @@ export default function ProductsPage() {
                     ) : (
                         products.map((product) => (
                             <Table.Row key={product.id}>
-                                <Table.Cell>{product.title}</Table.Cell>
+                                <Table.Cell>
+                                    {product.thumbnail ? (
+                                        <div className="w-10 h-10 rounded overflow-hidden shadow-sm border border-ui-border-base">
+                                            <img src={product.thumbnail} alt={product.title} className="w-full h-full object-cover" />
+                                        </div>
+                                    ) : (
+                                        <div className="w-10 h-10 bg-ui-bg-component rounded flex items-center justify-center border border-ui-border-base text-ui-fg-muted font-semibold text-xs text-center leading-none px-1">
+                                            No Img
+                                        </div>
+                                    )}
+                                </Table.Cell>
+                                <Table.Cell className="font-medium">{product.title}</Table.Cell>
                                 <Table.Cell>
                                     <StatusBadge color={product.status === "published" ? "green" : "grey"}>
                                         {product.status}
                                     </StatusBadge>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    {product.variants?.[0]?.prices?.[0] ?
+                                        `${(product.variants[0].prices[0].amount).toLocaleString()} ${product.variants[0].prices[0].currency_code.toUpperCase()}`
+                                        : "N/A"
+                                    }
                                 </Table.Cell>
                                 <Table.Cell>
                                     {product.variants?.reduce((acc: number, v: any) => acc + (v.inventory_quantity || 0), 0) || 0} in stock
@@ -118,25 +189,81 @@ export default function ProductsPage() {
             </Table>
 
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-ui-bg-overlay/50 backdrop-blur-sm">
-                    <div className="bg-ui-bg-base w-full max-w-md rounded-xl shadow-elevation-flyout p-6 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-ui-bg-overlay/50 backdrop-blur-sm p-4">
+                    <div className="bg-ui-bg-base w-full max-w-2xl rounded-xl shadow-elevation-flyout p-6 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                         <div>
                             <Heading level="h2">Create Product</Heading>
-                            <Text className="text-ui-fg-subtle text-sm mt-1">Enter a name for your new product.</Text>
+                            <Text className="text-ui-fg-subtle text-sm mt-1">Fill out the details to officially list your item in the marketplace.</Text>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="product-title" className="text-ui-fg-base">Product Name</Label>
-                            <Input
-                                id="product-title"
-                                placeholder="E.g. Handmade Leather Wallet"
-                                value={newProductTitle}
-                                onChange={(e) => setNewProductTitle(e.target.value)}
-                                autoFocus
-                            />
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="product-title" className="text-ui-fg-base">Product Name <span className="text-ui-fg-error">*</span></Label>
+                                <Input
+                                    id="product-title"
+                                    placeholder="E.g. Handmade Leather Wallet"
+                                    value={newProductTitle}
+                                    onChange={(e) => setNewProductTitle(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="product-desc" className="text-ui-fg-base">Description</Label>
+                                <textarea
+                                    id="product-desc"
+                                    className="flex w-full rounded-md border border-ui-border-base bg-ui-bg-field px-3 py-2 text-sm text-ui-fg-base placeholder:text-ui-fg-muted focus:outline-none focus:ring-2 focus:ring-ui-bg-interactive"
+                                    rows={3}
+                                    placeholder="Describe your product..."
+                                    value={newProductDescription}
+                                    onChange={(e) => setNewProductDescription(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="product-price" className="text-ui-fg-base">Price</Label>
+                                    <Input
+                                        id="product-price"
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={newProductPrice}
+                                        onChange={(e) => setNewProductPrice(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="product-currency" className="text-ui-fg-base">Currency</Label>
+                                    <select
+                                        id="product-currency"
+                                        className="flex h-8 w-full items-center justify-between rounded-md border border-ui-border-base bg-ui-bg-field px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ui-bg-interactive"
+                                        value={newProductCurrency}
+                                        onChange={(e) => setNewProductCurrency(e.target.value)}
+                                    >
+                                        <option value="thb">THB</option>
+                                        <option value="usd">USD</option>
+                                        <option value="eur">EUR</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-ui-fg-base">Product Image</Label>
+                                <div className="flex items-center gap-4">
+                                    {previewUrl && (
+                                        <div className="w-16 h-16 rounded overflow-hidden border border-ui-border-base shadow-sm shrink-0">
+                                            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 pt-4 border-t border-ui-border-base">
+                        <div className="flex items-center justify-end gap-2 pt-4 border-t border-ui-border-base mt-2">
                             <Button variant="secondary" onClick={() => setIsCreateModalOpen(false)}>
                                 Cancel
                             </Button>
