@@ -111,24 +111,43 @@ export const POST = async (
 
     const body = req.body as any
 
-    // Medusa v2 requires at least one product option and variant mapping.
-    // We seamlessly convert a simple frontend 1-price input into a strict Variant mapping array.
+    // Prepare options and combinations. Fallback to a single Default Option.
+    let options = [{ title: "Default Option", values: ["Default"] }]
+    let variantCombinations: Record<string, string>[] = [{ "Default Option": "Default" }]
+
+    if (body.options && Array.isArray(body.options) && body.options.length > 0) {
+        options = body.options
+        variantCombinations = options.reduce((acc: any[], currentOption: any) => {
+            return acc.flatMap(combo =>
+                currentOption.values.map((v: string) => ({ ...combo, [currentOption.title]: v }))
+            )
+        }, [{}])
+    }
+
+    const price = body.price ? Number(body.price) : 0
+    const currency_code = body.currency_code?.toLowerCase() || "thb"
+
+    const variants = variantCombinations.map(combo => {
+        const variantTitle = Object.values(combo).join(" / ")
+        return {
+            title: variantTitle,
+            manage_inventory: false,
+            options: combo,
+            prices: [
+                {
+                    amount: price,
+                    currency_code
+                }
+            ]
+        }
+    })
+
     const productPayload = {
-        ...body,
-        options: [{ title: "Default Option", values: ["Default"] }],
-        variants: [
-            {
-                title: "Default",
-                manage_inventory: false,
-                options: { "Default Option": "Default" },
-                prices: [
-                    {
-                        amount: body.price ? Number(body.price) : 0,
-                        currency_code: body.currency_code?.toLowerCase() || "thb"
-                    }
-                ]
-            }
-        ]
+        title: body.title,
+        description: body.description,
+        thumbnail: body.thumbnail,
+        options,
+        variants
     }
 
     const { result } = await createVendorProductWorkflow(req.scope)

@@ -15,6 +15,7 @@ export default function ProductsPage() {
     const [newProductCurrency, setNewProductCurrency] = useState("thb")
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+    const [options, setOptions] = useState<{ title: string, values: string }[]>([])
     const [isCreating, setIsCreating] = useState(false)
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,6 +80,14 @@ export default function ProductsPage() {
                 }
             }
 
+            // Pre-process options properly parsing comma separated values
+            const formattedOptions = options
+                .filter(o => o.title.trim() && o.values.trim())
+                .map(o => ({
+                    title: o.title.trim(),
+                    values: o.values.split(",").map(v => v.trim()).filter(Boolean)
+                }))
+
             // 2. Transmit fully-mapped main product payload
             // @ts-ignore
             await sdk.client.fetch("/vendors/me/products", {
@@ -91,7 +100,8 @@ export default function ProductsPage() {
                     description: newProductDescription || undefined,
                     price: newProductPrice ? Number(newProductPrice) : undefined,
                     currency_code: newProductCurrency,
-                    thumbnail: thumbnailUrl
+                    thumbnail: thumbnailUrl,
+                    options: formattedOptions.length > 0 ? formattedOptions : undefined
                 }
             })
 
@@ -104,6 +114,7 @@ export default function ProductsPage() {
             setNewProductPrice("")
             setSelectedFile(null)
             setPreviewUrl(null)
+            setOptions([])
 
             fetchProducts()
         } catch (e: any) {
@@ -260,6 +271,32 @@ export default function ProductsPage() {
                                         onChange={handleFileChange}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t border-ui-border-base mt-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-ui-fg-base font-medium">Product Options (Optional)</Label>
+                                    <Button variant="secondary" size="small" type="button" onClick={() => setOptions([...options, { title: "", values: "" }])}>
+                                        <Plus /> Add Option
+                                    </Button>
+                                </div>
+                                {options.map((opt, idx) => (
+                                    <div key={idx} className="flex items-start gap-4 p-4 border border-ui-border-base rounded-md relative shadow-sm">
+                                        <button type="button" className="absolute top-2 right-2 text-ui-fg-muted hover:text-ui-fg-base p-1" onClick={() => setOptions(options.filter((_, i) => i !== idx))}>&times;</button>
+                                        <div className="space-y-2 flex-1">
+                                            <Label className="text-xs">Option Name</Label>
+                                            <Input placeholder="e.g. Size" value={opt.title} onChange={e => {
+                                                const newOpts = [...options]; newOpts[idx].title = e.target.value; setOptions(newOpts);
+                                            }} />
+                                        </div>
+                                        <div className="space-y-2 flex-[2]">
+                                            <Label className="text-xs">Values (comma separated)</Label>
+                                            <Input placeholder="e.g. Small, Medium, Large" value={opt.values} onChange={e => {
+                                                const newOpts = [...options]; newOpts[idx].values = e.target.value; setOptions(newOpts);
+                                            }} />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
