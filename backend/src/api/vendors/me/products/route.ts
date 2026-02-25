@@ -80,11 +80,11 @@ export const GET = async (
         }
 
         const rawProductsCount = products.length
-        const rawProduct0 = products[0] || null
+        const rawProducts = [...products]
 
         // 3. Strictly filter in-memory to ensure only products actively assigned to this specific Sales Channel are returned
         products = products.filter((p: any) =>
-            p.sales_channels?.some((sc: any) => sc.id === salesChannelId)
+            p.sales_channels?.some((sc: any) => sc && sc.id === salesChannelId)
         )
         const count = products.length
 
@@ -92,7 +92,9 @@ export const GET = async (
             products,
             count,
             offset: 0,
-            limit: products.length
+            limit: products.length,
+            debug_sc_id: salesChannelId,
+            debug_raw: rawProducts.map(p => ({ id: p.id, title: p.title, sales_channels: p.sales_channels }))
         })
     } catch (error) {
         console.error("Error fetching products:", error)
@@ -142,12 +144,32 @@ export const POST = async (
         }
     })
 
+    // Resolve Vendor Sales Channel securely
+    const marketplaceModuleService: MarketplaceModuleService =
+        req.scope.resolve(MARKETPLACE_MODULE)
+
+    const vendorAdmin = await marketplaceModuleService.retrieveVendorAdmin(actor_id, {
+        relations: ["vendor"]
+    })
+
+    if (!vendorAdmin || !vendorAdmin.vendor) {
+        return res.status(404).json({ message: "Vendor profile not found for this user" })
+    }
+
+    const salesChannelId = vendorAdmin.vendor.sales_channel_id
+    if (!salesChannelId) {
+        return res.status(400).json({ message: "Vendor has no mapped sales channel. Please contact support." })
+    }
+
     const productPayload = {
         title: body.title,
         description: body.description,
         thumbnail: body.thumbnail,
         options,
-        variants
+        variants,
+        sales_channels: [
+            { id: salesChannelId }
+        ]
     }
 
     const { result } = await createVendorProductWorkflow(req.scope)

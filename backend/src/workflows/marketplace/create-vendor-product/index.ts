@@ -21,24 +21,14 @@ type WorkflowInput = {
 const createVendorProductWorkflow = createWorkflow(
   "create-vendor-product",
   (input: WorkflowInput) => {
-    // Retrieve vendor admin to get vendor ID
+    // Retrieve vendor admin to get vendor ID and their Sales Channel ID
     const { data: vendorAdmins } = useQueryGraphStep({
       entity: "vendor_admin",
-      fields: ["vendor.id", "vendor.name"],
+      fields: ["vendor.id", "vendor.name", "vendor.sales_channel_id"],
       filters: {
         id: input.vendor_admin_id
       }
     })
-
-    // Try to resolve the vendor's dedicated Sales Channel
-    // Falls back to the store default if no vendor Sales Channel exists
-    const { data: vendorWithSC } = useQueryGraphStep({
-      entity: "vendor",
-      fields: ["id", "sales_channel_id"],
-      filters: {
-        id: vendorAdmins[0].vendor.id,
-      },
-    }).config({ name: "retrieve-vendor-sales-channel" })
 
     const { data: stores } = useQueryGraphStep({
       entity: "store",
@@ -46,22 +36,11 @@ const createVendorProductWorkflow = createWorkflow(
     }).config({ name: "retrieve-store-defaults" })
 
     const productData = transform({
-      input,
-      vendorWithSC,
-      stores
+      input
     }, (data) => {
-      // Use vendor's Sales Channel, otherwise fall back to default
-      const salesChannelId = data.vendorWithSC?.[0]?.sales_channel_id
-        || data.stores[0].default_sales_channel_id
-
       return {
         products: [{
-          ...data.input.product,
-          sales_channels: [
-            {
-              id: salesChannelId
-            }
-          ]
+          ...data.input.product
         }]
       }
     })
@@ -73,17 +52,40 @@ const createVendorProductWorkflow = createWorkflow(
     const linksToCreate = transform({
       input,
       createdProducts,
-      vendorAdmins
+      vendorAdmins,
+      stores
     }, (data) => {
-      return data.createdProducts.map((product) => {
-        return {
-          [MARKETPLACE_MODULE]: {
-            vendor_id: data.vendorAdmins[0].vendor.id
-          },
-          [Modules.PRODUCT]: {
-            product_id: product.id
+      return data.createdProducts.flatMap((product) => {
+        const links: any[] = [
+          {
+            [MARKETPLACE_MODULE]: {
+              vendor_id: data.vendorAdmins[0].vendor.id
+            },
+            [Modules.PRODUCT]: {
+              product_id: product.id
+            }
           }
+        ]
+
+        // 1. Link to Vendor's isolated Sales Channel (for Dashboard isolation)
+        const vendorScId = data.input.product.sales_channels?.[0]?.id
+        if (vendorScId) {
+          links.push({
+            [Modules.PRODUCT]: { product_id: product.id },
+            [Modules.SALES_CHANNEL]: { sales_channel_id: vendorScId }
+          })
         }
+
+        // 2. Link to Global Store Sales Channel (for Next.js Storefront unified shopping)
+        const defaultScId = data.stores?.[0]?.default_sales_channel_id
+        if (defaultScId && defaultScId !== vendorScId) {
+          links.push({
+            [Modules.PRODUCT]: { product_id: product.id },
+            [Modules.SALES_CHANNEL]: { sales_channel_id: defaultScId }
+          })
+        }
+
+        return links
       })
     })
 

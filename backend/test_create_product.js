@@ -21,7 +21,7 @@ async function testCreateProduct() {
 
             // Now create product
             const productData = JSON.stringify({
-                title: "Test Product from API 2",
+                title: `Test Product ${Date.now()}`,
                 options: [{ title: "Default Option", values: ["Default"] }]
             });
 
