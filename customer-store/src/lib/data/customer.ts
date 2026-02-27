@@ -13,6 +13,8 @@ import {
   removeAuthToken,
   removeCartId,
   setAuthToken,
+  setVendorPublishableKey,
+  removeVendorPublishableKey,
 } from "./cookies"
 
 export const retrieveCustomer =
@@ -42,6 +44,25 @@ export const retrieveCustomer =
       .then(({ customer }) => customer)
       .catch(() => null)
   }
+
+/**
+ * Fetches the vendor's publishable API key for the current customer
+ * and stores it in a cookie for the SDK to use.
+ */
+async function fetchAndSetVendorKey() {
+  try {
+    const headers = { ...(await getAuthHeaders()) }
+    const res = await sdk.client.fetch<{ publishable_api_key: string | null }>(
+      `/store/customer-vendor-key`,
+      { method: "GET", headers }
+    )
+    if (res.publishable_api_key) {
+      await setVendorPublishableKey(res.publishable_api_key)
+    }
+  } catch (e) {
+    console.error("[fetchAndSetVendorKey] Failed:", e)
+  }
+}
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   const headers = {
@@ -122,6 +143,9 @@ export async function signup(_currentState: unknown, formData: FormData) {
     return error.toString()
   }
 
+  // Fetch and set vendor publishable key after signup
+  await fetchAndSetVendorKey()
+
   redirect("/")
 }
 
@@ -161,12 +185,16 @@ export async function login(_currentState: unknown, formData: FormData) {
   } catch (error: any) {
     return error.toString()
   }
+
+  // Fetch and set vendor publishable key after login
+  await fetchAndSetVendorKey()
 }
 
 export async function signout(countryCode: string) {
   await sdk.auth.logout()
 
   await removeAuthToken()
+  await removeVendorPublishableKey()
 
   const customerCacheTag = await getCacheTag("customers")
   revalidateTag(customerCacheTag)

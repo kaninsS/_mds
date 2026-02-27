@@ -10,6 +10,7 @@ import {
 import createVendorAdminStep from "./steps/create-vendor-admin"
 import createVendorStep from "./steps/create-vendor"
 import createVendorSalesChannelStep from "./steps/create-vendor-sales-channel"
+import createVendorPublishableKeyStep from "./steps/create-vendor-publishable-key"
 
 export type CreateVendorWorkflowInput = {
   name: string
@@ -53,7 +54,21 @@ const createVendorWorkflow = createWorkflow(
       vendor_name: data.input.name,
     }))
 
-    createVendorSalesChannelStep(salesChannelData)
+    const salesChannelResult = createVendorSalesChannelStep(salesChannelData)
+
+    // Create a dedicated publishable API key for the vendor,
+    // scoped to their sales channel
+    const pubKeyData = transform({
+      input,
+      vendor,
+      salesChannelResult,
+    }, (data) => ({
+      vendor_id: data.vendor.id,
+      vendor_name: data.input.name,
+      sales_channel_id: data.salesChannelResult.sales_channel.id,
+    }))
+
+    createVendorPublishableKeyStep(pubKeyData)
 
     setAuthAppMetadataStep({
       authIdentityId: input.authIdentityId,
@@ -76,4 +91,5 @@ const createVendorWorkflow = createWorkflow(
 )
 
 export default createVendorWorkflow
+
 

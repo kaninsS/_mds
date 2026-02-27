@@ -87,3 +87,30 @@ export const removeCartId = async () => {
     maxAge: -1,
   })
 }
+
+export const getVendorPublishableKey = async (): Promise<string | null> => {
+  try {
+    const cookies = await nextCookies()
+    return cookies.get("_vendor_pub_key")?.value || null
+  } catch {
+    return null
+  }
+}
+
+export const setVendorPublishableKey = async (key: string) => {
+  const cookies = await nextCookies()
+  cookies.set("_vendor_pub_key", key, {
+    maxAge: 60 * 60 * 24 * 7,
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+  })
+}
+
+export const removeVendorPublishableKey = async () => {
+  const cookies = await nextCookies()
+  cookies.set("_vendor_pub_key", "", {
+    maxAge: -1,
+  })
+}
+

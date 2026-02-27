@@ -1,5 +1,6 @@
 import { getLocaleHeader } from "@lib/util/get-locale-header"
 import Medusa, { FetchArgs, FetchInput } from "@medusajs/js-sdk"
+import { getVendorPublishableKey } from "@lib/data/cookies"
 
 // Defaults to standard port for Medusa server
 let MEDUSA_BACKEND_URL = "http://localhost:9000"
@@ -25,7 +26,15 @@ sdk.client.fetch = async <T>(
   try {
     localeHeader = await getLocaleHeader()
     headers["x-medusa-locale"] ??= localeHeader["x-medusa-locale"]
-  } catch {}
+  } catch { }
+
+  // Inject vendor-specific publishable key if available
+  try {
+    const vendorKey = await getVendorPublishableKey()
+    if (vendorKey) {
+      headers["x-publishable-api-key"] = vendorKey
+    }
+  } catch { }
 
   const newHeaders = {
     ...localeHeader,
@@ -37,3 +46,4 @@ sdk.client.fetch = async <T>(
   }
   return originalFetch(input, init)
 }
+

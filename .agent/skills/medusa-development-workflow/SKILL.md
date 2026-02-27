@@ -16,7 +16,7 @@ Before writing any code, ALWAYS check the Medusa documentation (or your internal
 
 ## 2. 🧩 Check Existing Examples
 
-Look into `examples/` folder and existing plugins.
+Look into `_example_medusa_plugin/` folder and existing plugins.
 
 - **Reusability**: If a plugin or example already does what we need (or 90% of it), use it or adapt it.
 - **Consistency**: Match the style and patterns of existing successful modules in the codebase.

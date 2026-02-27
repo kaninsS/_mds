@@ -9,6 +9,7 @@ const Vendor = model.define("vendor", {
   name: model.text(),
   logo: model.text().nullable(),
   sales_channel_id: model.text().nullable(),
+  publishable_api_key_id: model.text().nullable(),
   admins: model.hasMany(() => VendorAdmin, {
     mappedBy: "vendor",
   }),
