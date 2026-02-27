@@ -24,11 +24,27 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Proxy Medusa static files so Next.js Image can serve them as local paths
+  // (Next.js 16 blocks remote images resolving to private IPs like localhost)
+  async rewrites() {
+    return [
+      {
+        source: "/medusa-static/:path*",
+        destination: "http://localhost:9000/static/:path*",
+      },
+    ]
+  },
   images: {
     remotePatterns: [
       {
         protocol: "http",
         hostname: "localhost",
+        port: "9000",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "8000",
       },
       {
         protocol: "https",
@@ -44,12 +60,12 @@ const nextConfig = {
       },
       ...(S3_HOSTNAME && S3_PATHNAME
         ? [
-            {
-              protocol: "https",
-              hostname: S3_HOSTNAME,
-              pathname: S3_PATHNAME,
-            },
-          ]
+          {
+            protocol: "https",
+            hostname: S3_HOSTNAME,
+            pathname: S3_PATHNAME,
+          },
+        ]
         : []),
     ],
   },
