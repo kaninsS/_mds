@@ -54,7 +54,7 @@ const ImageOrPlaceholder = ({
 }: Pick<ThumbnailProps, "size"> & { image?: string }) => {
   return image ? (
     <Image
-      src={image}
+      src={rewriteImageUrl(image)}
       alt="Thumbnail"
       className="absolute inset-0 object-cover object-center"
       draggable={false}
