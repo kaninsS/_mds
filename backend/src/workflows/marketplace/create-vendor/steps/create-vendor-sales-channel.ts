@@ -4,6 +4,7 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import {
     createSalesChannelsWorkflow,
+    linkSalesChannelsToStockLocationWorkflow,
 } from "@medusajs/medusa/core-flows"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { MARKETPLACE_MODULE } from "../../../../modules/marketplace"
@@ -36,6 +37,19 @@ const createVendorSalesChannelStep = createStep(
         })
 
         const salesChannel = salesChannels[0]
+
+        // 1b. Link the sales channel to the default stock location
+        //     so that fulfillment/shipping options are available
+        const stockLocationModule = container.resolve(Modules.STOCK_LOCATION)
+        const stockLocations = await stockLocationModule.listStockLocations({}, { take: 1 })
+        if (stockLocations.length) {
+            await linkSalesChannelsToStockLocationWorkflow(container).run({
+                input: {
+                    id: stockLocations[0].id,
+                    add: [salesChannel.id],
+                },
+            })
+        }
 
         // 2. Link vendor → sales channel
         await link.create({
