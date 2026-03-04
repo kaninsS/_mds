@@ -18,8 +18,9 @@ export const GET = async (
     const marketplaceModuleService: MarketplaceModuleService =
         req.scope.resolve(MARKETPLACE_MODULE)
 
-    const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
+    // 1. Get the vendor's sales_channel_id
     const vendorAdmin = await marketplaceModuleService.retrieveVendorAdmin(actor_id, {
         relations: ["vendor"]
     })
@@ -28,14 +29,14 @@ export const GET = async (
         return res.status(404).json({ message: "Vendor not found for this user" })
     }
 
-    const vendorId = vendorAdmin.vendor.id
+    const salesChannelId = vendorAdmin.vendor.sales_channel_id
+    if (!salesChannelId) {
+        return res.status(404).json({ message: "Order not found or does not belong to vendor" })
+    }
 
-    // 1. Verify this order actually belongs to the vendor
-    const query = {
-        entryPoint: "vendor",
-        fields: ["id"],
-        filters: { id: vendorId },
-        orders: {
+    try {
+        const { data: orders } = await query.graph({
+            entity: "order",
             fields: [
                 "id",
                 "display_id",
@@ -49,28 +50,21 @@ export const GET = async (
                 "currency_code",
                 "created_at",
                 "email",
+                "sales_channel_id",
                 "items.*",
                 "customer.*",
                 "shipping_address.*",
                 "billing_address.*",
-                "fulfillments.*"
+                "fulfillments.*",
+                "shipping_methods.*",
             ],
-            filters: { id }
-        }
-    }
+            filters: {
+                id,
+                sales_channel_id: salesChannelId,
+            },
+        })
 
-    try {
-        const result = await remoteQuery(query)
-
-        let vendor;
-        if (Array.isArray(result)) {
-            vendor = result[0];
-        } else if (result && typeof result === 'object') {
-            vendor = (result as any).data ? (result as any).data[0] : result;
-        }
-
-        const orders = vendor?.orders || []
-        if (orders.length === 0) {
+        if (!orders.length) {
             return res.status(404).json({ message: "Order not found or does not belong to vendor" })
         }
 

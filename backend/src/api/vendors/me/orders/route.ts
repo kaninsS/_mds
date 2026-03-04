@@ -20,8 +20,9 @@ export const GET = async (
     const marketplaceModuleService: MarketplaceModuleService =
         req.scope.resolve(MARKETPLACE_MODULE)
 
-    const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
+    // 1. Get the vendor's sales_channel_id
     const vendorAdmin = await marketplaceModuleService.retrieveVendorAdmin(actor_id, {
         relations: ["vendor"]
     })
@@ -31,46 +32,69 @@ export const GET = async (
         return
     }
 
-    const vendorId = vendorAdmin.vendor.id
+    const salesChannelId = vendorAdmin.vendor.sales_channel_id
+    console.log(`[vendor-orders] vendor_id=${vendorAdmin.vendor.id}, sales_channel_id=${salesChannelId}`)
 
-    const query = {
-        entryPoint: "vendor",
-        fields: ["id"],
-        filters: { id: vendorId },
-        orders: {
+    if (!salesChannelId) {
+        return res.json({ orders: [], count: 0, offset: 0, limit: 0 })
+    }
+
+    // Read optional query params for filtering
+    const statusFilter = req.query.status as string | undefined
+
+    const filters: Record<string, any> = {
+        sales_channel_id: salesChannelId,
+    }
+
+    if (statusFilter && statusFilter !== "all") {
+        filters.status = statusFilter
+    }
+
+    try {
+        // Use query.graph to fetch orders filtered by sales_channel_id
+        const { data: orders } = await query.graph({
+            entity: "order",
             fields: [
                 "id",
                 "display_id",
                 "region_id",
+                "sales_channel_id",
                 "status",
                 "fulfillment_status",
                 "payment_status",
                 "total",
+                "subtotal",
+                "tax_total",
                 "currency_code",
-                "created_at"
+                "email",
+                "created_at",
+                "customer.id",
+                "customer.first_name",
+                "customer.last_name",
+                "customer.email",
+                "items.id",
+                "items.title",
+                "items.variant_title",
+                "items.quantity",
+                "items.unit_price",
+                "items.thumbnail",
+                "shipping_address.*",
             ],
-        }
-    }
+            filters,
+        })
 
-    try {
-        const result = await remoteQuery(query)
+        console.log(`[vendor-orders] Found ${orders.length} orders for sales_channel_id=${salesChannelId}`)
 
-        let vendor;
-        if (Array.isArray(result)) {
-            vendor = result[0];
-        } else if (result && typeof result === 'object') {
-            // @ts-ignore
-            vendor = result.data ? result.data[0] : result;
-        }
-
-        const orders = vendor?.orders || []
-        const count = orders.length
+        // Sort by created_at descending (newest first)
+        orders.sort((a: any, b: any) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
 
         res.json({
             orders,
-            count,
+            count: orders.length,
             offset: 0,
-            limit: orders.length
+            limit: orders.length,
         })
     } catch (error) {
         console.error("Error fetching orders:", error)

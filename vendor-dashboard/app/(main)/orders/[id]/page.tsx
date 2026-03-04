@@ -82,15 +82,15 @@ export default function OrderDetailPage() {
                     <div className="flex flex-col gap-2 text-sm">
                         <div className="flex justify-between">
                             <Text className="text-ui-fg-subtle">Subtotal</Text>
-                            <Text>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.subtotal / 100)}</Text>
+                            <Text>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.subtotal)}</Text>
                         </div>
                         <div className="flex justify-between">
                             <Text className="text-ui-fg-subtle">Tax</Text>
-                            <Text>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.tax_total / 100)}</Text>
+                            <Text>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.tax_total)}</Text>
                         </div>
                         <div className="flex justify-between pt-2 border-t border-ui-border-base font-medium">
                             <Text>Total</Text>
-                            <Text>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.total / 100)}</Text>
+                            <Text>{new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.total)}</Text>
                         </div>
                     </div>
                 </Container>
@@ -116,10 +116,10 @@ export default function OrderDetailPage() {
                                 </Table.Cell>
                                 <Table.Cell>{item.quantity}</Table.Cell>
                                 <Table.Cell>
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(item.unit_price / 100)}
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(item.unit_price)}
                                 </Table.Cell>
                                 <Table.Cell>
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format((item.unit_price * item.quantity) / 100)}
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(item.unit_price * item.quantity)}
                                 </Table.Cell>
                             </Table.Row>
                         ))}
