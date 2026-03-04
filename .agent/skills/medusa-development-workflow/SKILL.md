@@ -21,7 +21,15 @@ Look into `_example_medusa_plugin/` folder and existing plugins.
 - **Reusability**: If a plugin or example already does what we need (or 90% of it), use it or adapt it.
 - **Consistency**: Match the style and patterns of existing successful modules in the codebase.
 
-## 3. 🛡️ Medusa Standards strict adherence
+## 3. 📊 DB Diagram Tracking
+
+We maintain a living Database Entity-Relationship (ER) diagram reflecting the backend's current data structure, including custom models and Medusa links.
+
+- **Location**: `_mds/_stage/stage.md`
+- **Rule**: Whenever the database schema, models, or links are updated (e.g., adding a new module or a Medusa Link), **this diagram MUST be updated** to ensure we can always track the database relations easily.
+- **Reference**: Always refer to this document to see the current flow of db relations with the latest stage.
+
+## 4. 🛡️ Medusa Standards strict adherence
 
 Your deep knowledge of CS (BigO, OOP, DB Normalization) supports your work, but **Medusa Standards come first**.
 
