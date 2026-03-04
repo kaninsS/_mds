@@ -146,6 +146,7 @@ export const POST = async (
         title: body.title,
         description: body.description,
         thumbnail: body.thumbnail,
+        images: body.thumbnail ? [{ url: body.thumbnail }] : undefined,
         options,
         variants
     }
