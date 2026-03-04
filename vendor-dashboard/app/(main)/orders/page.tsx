@@ -2,8 +2,35 @@
 
 import { useEffect, useState } from "react"
 import { sdk } from "@/lib/client"
-import { Container, Heading, Table, StatusBadge, Text, Button } from "@medusajs/ui"
+import { Container, Heading, Table, StatusBadge, Text, Button, clx } from "@medusajs/ui"
 import Link from "next/link"
+
+const PAYMENT_STATUS_MAP: Record<string, { label: string, color: "red" | "orange" | "green" | "blue" | "grey" }> = {
+    not_paid: { label: "Not Paid", color: "red" },
+    authorized: { label: "Authorized", color: "orange" },
+    partially_authorized: { label: "Partially Authorized", color: "red" },
+    awaiting: { label: "Awaiting", color: "orange" },
+    captured: { label: "Captured", color: "green" },
+    refunded: { label: "Refunded", color: "red" },
+    partially_refunded: { label: "Partially Refunded", color: "orange" },
+    partially_captured: { label: "Partially Captured", color: "orange" },
+    canceled: { label: "Canceled", color: "red" },
+    requires_action: { label: "Requires Action", color: "orange" },
+}
+
+const FULFILLMENT_STATUS_MAP: Record<string, { label: string, color: "red" | "orange" | "green" | "blue" | "grey" }> = {
+    not_fulfilled: { label: "Not Fulfilled", color: "red" },
+    partially_fulfilled: { label: "Partially Fulfilled", color: "orange" },
+    fulfilled: { label: "Fulfilled", color: "green" },
+    partially_shipped: { label: "Partially Shipped", color: "orange" },
+    shipped: { label: "Shipped", color: "green" },
+    delivered: { label: "Delivered", color: "green" },
+    partially_delivered: { label: "Partially Delivered", color: "orange" },
+    partially_returned: { label: "Partially Returned", color: "orange" },
+    returned: { label: "Returned", color: "green" },
+    canceled: { label: "Canceled", color: "red" },
+    requires_action: { label: "Requires Action", color: "orange" },
+}
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<any[]>([])
@@ -70,17 +97,17 @@ export default function OrdersPage() {
                                     </StatusBadge>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    <StatusBadge color={order.payment_status === "captured" ? "green" : "orange"}>
-                                        {order.payment_status}
+                                    <StatusBadge color={PAYMENT_STATUS_MAP[order.payment_status]?.color || "grey"}>
+                                        {PAYMENT_STATUS_MAP[order.payment_status]?.label || order.payment_status}
                                     </StatusBadge>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    <StatusBadge color={order.fulfillment_status === "shipped" ? "green" : "grey"}>
-                                        {order.fulfillment_status}
+                                    <StatusBadge color={FULFILLMENT_STATUS_MAP[order.fulfillment_status]?.color || "grey"}>
+                                        {FULFILLMENT_STATUS_MAP[order.fulfillment_status]?.label || order.fulfillment_status}
                                     </StatusBadge>
                                 </Table.Cell>
                                 <Table.Cell>
-                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.total / 100)}
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency_code }).format(order.total)}
                                 </Table.Cell>
                                 <Table.Cell>
                                     {new Date(order.created_at).toLocaleDateString()}

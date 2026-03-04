@@ -2,7 +2,7 @@ import {
     AuthenticatedMedusaRequest,
     MedusaResponse
 } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { getOrdersListWorkflow } from "@medusajs/core-flows"
 import { MARKETPLACE_MODULE } from "../../../../modules/marketplace"
 import MarketplaceModuleService from "../../../../modules/marketplace/service"
 
@@ -20,8 +20,7 @@ export const GET = async (
     const marketplaceModuleService: MarketplaceModuleService =
         req.scope.resolve(MARKETPLACE_MODULE)
 
-    const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-
+    // Ensure vendor context exists
     const vendorAdmin = await marketplaceModuleService.retrieveVendorAdmin(actor_id, {
         relations: ["vendor"]
     })
@@ -31,49 +30,52 @@ export const GET = async (
         return
     }
 
-    const vendorId = vendorAdmin.vendor.id
+    // Force strict filtering by the vendor's assigned sales channel
+    const salesChannelId = vendorAdmin.vendor.sales_channel_id
 
-    const query = {
-        entryPoint: "vendor",
-        fields: ["id"],
-        filters: { id: vendorId },
-        orders: {
-            fields: [
-                "id",
-                "display_id",
-                "region_id",
-                "status",
-                "fulfillment_status",
-                "payment_status",
-                "total",
-                "currency_code",
-                "created_at"
-            ],
-        }
+    // Mirror Medusa's standard internal logic for index listing
+    const variables = {
+        filters: {
+            ...req.filterableFields,
+            sales_channel_id: salesChannelId,
+            is_draft_order: false,
+        },
+        ...req.queryConfig?.pagination,
     }
 
-    try {
-        const result = await remoteQuery(query)
+    const workflow = getOrdersListWorkflow(req.scope)
 
-        let vendor;
+    try {
+        const { result } = await workflow.run({
+            input: {
+                fields: req.queryConfig?.fields || [], // The Admin config normally populates this automatically
+                variables,
+            },
+        })
+
+        let rows: any[] = []
+        let metadata = { count: 0, skip: 0, take: 0 }
+
         if (Array.isArray(result)) {
-            vendor = result[0];
-        } else if (result && typeof result === 'object') {
-            // @ts-ignore
-            vendor = result.data ? result.data[0] : result;
+            rows = result
+            metadata = {
+                count: rows.length,
+                skip: variables.skip || 0,
+                take: variables.take || rows.length,
+            }
+        } else {
+            rows = result.rows
+            metadata = result.metadata
         }
 
-        const orders = vendor?.orders || []
-        const count = orders.length
-
         res.json({
-            orders,
-            count,
-            offset: 0,
-            limit: orders.length
+            orders: rows,
+            count: metadata.count,
+            offset: metadata.skip,
+            limit: metadata.take,
         })
-    } catch (error) {
-        console.error("Error fetching orders:", error)
+    } catch (error: any) {
+        console.error("Error fetching vendor orders:", error)
         res.status(500).json({ message: "Internal Server Error", error: error.message })
     }
 }
