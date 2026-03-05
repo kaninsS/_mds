@@ -78,7 +78,7 @@ export const POST = async (
         }
 
         // Capture all uncaptured payments
-        const capturedPayments = []
+        const capturedPayments: any[] = []
         for (const payment of uncapturedPayments) {
             const workflow = capturePaymentWorkflow(req.scope)
             const { result: capturedPayment } = await workflow.run({
