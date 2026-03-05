@@ -6,9 +6,9 @@ RANDOM_ID=$(date +%s)
 EMAIL="kaninsorn27+$RANDOM_ID@gmail.com"
 # EMAIL="vendor_$RANDOM_ID@test.com"
 PASSWORD="password"
-VENDOR_NAME="KNS-$RANDOM_ID"
-VENDOR_HANDLE="KNS-$RANDOM_ID"
-COOKIE_FILE="/tmp/cookies_$RANDOM_ID.txt"
+VENDOR_NAME="GR-$RANDOM_ID"
+VENDOR_HANDLE="GR_$RANDOM_ID"
+COOKIE_FILE="/tmp/cookies_gr_$RANDOM_ID.txt"
 
 echo "Creating Test Vendor with Email: $EMAIL"
 

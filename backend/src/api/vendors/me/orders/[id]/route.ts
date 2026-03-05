@@ -5,6 +5,7 @@ import {
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { MARKETPLACE_MODULE } from "../../../../../modules/marketplace"
 import MarketplaceModuleService from "../../../../../modules/marketplace/service"
+import { getOrdersListWorkflow } from "@medusajs/core-flows"
 
 export const GET = async (
     req: AuthenticatedMedusaRequest,
@@ -18,8 +19,6 @@ export const GET = async (
     const marketplaceModuleService: MarketplaceModuleService =
         req.scope.resolve(MARKETPLACE_MODULE)
 
-    const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-
     const vendorAdmin = await marketplaceModuleService.retrieveVendorAdmin(actor_id, {
         relations: ["vendor"]
     })
@@ -28,48 +27,52 @@ export const GET = async (
         return res.status(404).json({ message: "Vendor not found for this user" })
     }
 
-    const vendorId = vendorAdmin.vendor.id
-
-    // 1. Verify this order actually belongs to the vendor
-    const query = {
-        entryPoint: "vendor",
-        fields: ["id"],
-        filters: { id: vendorId },
-        orders: {
-            fields: [
-                "id",
-                "display_id",
-                "status",
-                "fulfillment_status",
-                "payment_status",
-                "total",
-                "subtotal",
-                "tax_total",
-                "discount_total",
-                "currency_code",
-                "created_at",
-                "email",
-                "items.*",
-                "customer.*",
-                "shipping_address.*",
-                "billing_address.*",
-                "fulfillments.*"
-            ],
-            filters: { id }
-        }
-    }
+    const salesChannelId = vendorAdmin.vendor.sales_channel_id
 
     try {
-        const result = await remoteQuery(query)
+        // Use the same workflow as the list endpoint for consistency
+        const workflow = getOrdersListWorkflow(req.scope)
 
-        let vendor;
+        const { result } = await workflow.run({
+            input: {
+                fields: [
+                    "id",
+                    "display_id",
+                    "status",
+                    "fulfillment_status",
+                    "payment_status",
+                    "total",
+                    "subtotal",
+                    "tax_total",
+                    "discount_total",
+                    "shipping_total",
+                    "currency_code",
+                    "created_at",
+                    "email",
+                    "items.*",
+                    "customer.*",
+                    "shipping_address.*",
+                    "billing_address.*",
+                    "fulfillments.*",
+                    "sales_channel_id",
+                ],
+                variables: {
+                    filters: {
+                        id,
+                        sales_channel_id: salesChannelId,
+                        is_draft_order: false,
+                    },
+                },
+            },
+        })
+
+        let orders: any[] = []
         if (Array.isArray(result)) {
-            vendor = result[0];
-        } else if (result && typeof result === 'object') {
-            vendor = (result as any).data ? (result as any).data[0] : result;
+            orders = result
+        } else {
+            orders = result.rows || []
         }
 
-        const orders = vendor?.orders || []
         if (orders.length === 0) {
             return res.status(404).json({ message: "Order not found or does not belong to vendor" })
         }

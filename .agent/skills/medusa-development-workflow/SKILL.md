@@ -41,5 +41,14 @@ Your deep knowledge of CS (BigO, OOP, DB Normalization) supports your work, but 
 - **API Routes**: Implement Admin and Store routes correctly in `src/api` and use Validators.
 - **Integration**: Use `medusa-config` to register modules correctly.
 
----
-*Note: Optimization (BigO) and strict OOP structure are secondary to adhering to the framework's architecture.*
+## 5. 🔑 Test Credentials
+
+### Backend (Admin)
+
+- **Email**: `admin_dd@admin.com`
+- **Password**: `password`
+
+### Vendor Dashboard
+
+- **Email**: `kaninsorn27+1772683018@gmail.com`
+- **Password**: `password`
