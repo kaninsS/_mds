@@ -1,5 +1,6 @@
 import "server-only"
 import { cookies as nextCookies } from "next/headers"
+import { encrypt, decrypt } from "@lib/util/crypto"
 
 export const getAuthHeaders = async (): Promise<
   { authorization: string } | {}
@@ -91,7 +92,8 @@ export const removeCartId = async () => {
 export const getVendorPublishableKey = async (): Promise<string | null> => {
   try {
     const cookies = await nextCookies()
-    return cookies.get("_vendor_pub_key")?.value || null
+    const value = cookies.get("_vendor_pub_key")?.value || null
+    return value ? decrypt(value) : null
   } catch {
     return null
   }
@@ -99,7 +101,8 @@ export const getVendorPublishableKey = async (): Promise<string | null> => {
 
 export const setVendorPublishableKey = async (key: string) => {
   const cookies = await nextCookies()
-  cookies.set("_vendor_pub_key", key, {
+  const encryptedKey = encrypt(key)
+  cookies.set("_vendor_pub_key", encryptedKey, {
     maxAge: 60 * 60 * 24 * 7,
     httpOnly: true,
     sameSite: "strict",
