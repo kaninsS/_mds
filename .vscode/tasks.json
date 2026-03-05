@@ -1,0 +1,78 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Cleanup Ports",
+            "type": "shell",
+            "command": "kill -9 $(lsof -ti TCP:3000,8000,9000) 2>/dev/null || true",
+            "presentation": {
+                "reveal": "never",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Backend (Medusa)",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/backend"
+            },
+            "dependsOn": [
+                "Cleanup Ports"
+            ],
+            "presentation": {
+                "group": "dev-group",
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Storefront (Next.js)",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/customer-store"
+            },
+            "dependsOn": [
+                "Cleanup Ports"
+            ],
+            "presentation": {
+                "group": "dev-group",
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Vendor Dashboard (Next.js)",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/vendor-dashboard"
+            },
+            "dependsOn": [
+                "Cleanup Ports"
+            ],
+            "presentation": {
+                "group": "dev-group",
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Start All Services",
+            "dependsOn": [
+                "Backend (Medusa)",
+                "Storefront (Next.js)",
+                "Vendor Dashboard (Next.js)"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
+}

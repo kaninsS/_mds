@@ -1,0 +1,5 @@
+{
+    "terminal.integrated.tabs.enabled": true,
+    "terminal.integrated.tabs.location": "right",
+    "terminal.integrated.defaultProfile.osx": "zsh"
+}
